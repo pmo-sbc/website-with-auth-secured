@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - AI Prompt Templates</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .admin-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-header p {
+            color: var(--text-secondary);
+        }
+
+        .users-table-container {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .users-table thead {
+            background: var(--dark-bg);
+        }
+
+        .users-table th {
+            text-align: left;
+            padding: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .users-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .users-table tbody tr:hover {
+            background: var(--dark-bg);
+        }
+
+        .users-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-verified {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-unverified {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-delete-user {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid var(--primary-color);
+            background: transparent;
+            color: var(--primary-color);
+            transition: all 0.3s;
+        }
+
+        .btn-delete-user:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-delete-user:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-card h3 {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-circle">AI</div>
+                <span class="logo-text">AI Prompt Templates</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/templates.html">Templates</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/admin/users" class="active">User Management</a></li>
+                <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>User Management</h1>
+            <p>View and manage user accounts</p>
+        </div>
+
+        <!-- Statistics Summary -->
+        <div class="stats-summary">
+            <div class="stat-card">
+                <h3>Total Users</h3>
+                <div class="stat-number" id="totalUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Verified Users</h3>
+                <div class="stat-number" id="verifiedUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Unverified Users</h3>
+                <div class="stat-number" id="unverifiedUsers">0</div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="users-table-container">
+            <div id="loadingIndicator" class="loading">
+                Loading users...
+            </div>
+            <table class="users-table" id="usersTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                </tbody>
+            </table>
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <h3>No users found</h3>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/csrf-helper.js"></script>
+    <script>
+        let allUsers = [];
+
+        // Load users
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('Failed to load users');
+                }
+
+                const data = await response.json();
+                allUsers = data.users;
+
+                displayUsers(allUsers);
+                updateStats(allUsers);
+
+                document.getElementById('loadingIndicator').style.display = 'none';
+
+                if (allUsers.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                } else {
+                    document.getElementById('usersTable').style.display = 'table';
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('loadingIndicator').innerHTML =
+                    '<p style="color: var(--primary-color);">Error loading users. Please try again.</p>';
+            }
+        }
+
+        // Display users in table
+        function displayUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.id}</td>
+                    <td><strong>${user.username}</strong></td>
+                    <td>${user.email}</td>
+                    <td>
+                        <span class="badge ${user.email_verified ? 'badge-verified' : 'badge-unverified'}">
+                            ${user.email_verified ? 'Verified' : 'Unverified'}
+                        </span>
+                    </td>
+                    <td>${new Date(user.created_at).toLocaleString()}</td>
+                    <td>
+                        <button class="btn-delete-user" data-user-id="${user.id}" data-username="${user.username}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Attach delete event listeners
+            tbody.querySelectorAll('.btn-delete-user').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    deleteUser(this.getAttribute('data-user-id'), this.getAttribute('data-username'));
+                });
+            });
+        }
+
+        // Update statistics
+        function updateStats(users) {
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('verifiedUsers').textContent =
+                users.filter(u => u.email_verified).length;
+            document.getElementById('unverifiedUsers').textContent =
+                users.filter(u => !u.email_verified).length;
+        }
+
+        // Delete user
+        async function deleteUser(userId, username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithCsrf(`/api/admin/users/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`User "${username}" has been deleted successfully.`);
+                    loadUsers(); // Reload the users list
+                } else {
+                    alert(data.error || 'Failed to delete user');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert('Failed to delete user. Please try again.');
+            }
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetchWithCsrf('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            logout();
+        });
+
+        // Initialize
+        loadUsers();
+    </script>
+</body>
+</html>

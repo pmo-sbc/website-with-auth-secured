@@ -1,0 +1,153 @@
+/**
+ * Prompt Routes
+ */
+
+const express = require('express');
+const promptRepository = require('../db/promptRepository');
+const validators = require('../validators');
+const { handleValidationErrors } = require('../middleware/validation');
+const { asyncHandler } = require('../middleware/errorHandler');
+const { requireAuth } = require('../middleware/auth');
+const { configureCsrf } = require('../middleware/security');
+const logger = require('../utils/logger');
+
+const router = express.Router();
+const csrfProtection = configureCsrf();
+
+// All routes require authentication
+router.use(requireAuth);
+
+/**
+ * POST /api/prompts/save
+ * Save a new prompt
+ */
+router.post(
+  '/save',
+  csrfProtection,
+  validators.savePrompt,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const { templateName, category, promptText, inputs } = req.body;
+    const userId = req.session.userId;
+
+    const prompt = promptRepository.create(
+      userId,
+      templateName,
+      category,
+      promptText,
+      inputs
+    );
+
+    logger.info('Prompt saved', {
+      userId,
+      promptId: prompt.id,
+      templateName
+    });
+
+    res.json({
+      success: true,
+      promptId: prompt.id,
+      message: 'Prompt saved successfully'
+    });
+  })
+);
+
+/**
+ * GET /api/prompts
+ * Get all prompts for current user
+ */
+router.get(
+  '/',
+  asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const prompts = promptRepository.findByUserId(userId, limit, offset);
+
+    logger.debug('Prompts retrieved', {
+      userId,
+      count: prompts.length
+    });
+
+    res.json(prompts);
+  })
+);
+
+/**
+ * GET /api/prompts/:id
+ * Get a specific prompt
+ */
+router.get(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const promptId = parseInt(req.params.id);
+    const userId = req.session.userId;
+
+    const prompt = promptRepository.findById(promptId, userId);
+
+    if (!prompt) {
+      return res.status(404).json({
+        error: 'Prompt not found'
+      });
+    }
+
+    res.json(prompt);
+  })
+);
+
+/**
+ * DELETE /api/prompts/:id
+ * Delete a prompt
+ */
+router.delete(
+  '/:id',
+  csrfProtection,
+  validators.deletePrompt,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const promptId = parseInt(req.params.id);
+    const userId = req.session.userId;
+
+    const deleted = promptRepository.delete(promptId, userId);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: 'Prompt not found or already deleted'
+      });
+    }
+
+    logger.info('Prompt deleted', {
+      userId,
+      promptId
+    });
+
+    res.json({
+      success: true,
+      message: 'Prompt deleted successfully'
+    });
+  })
+);
+
+/**
+ * POST /api/prompts/search
+ * Search prompts
+ */
+router.post(
+  '/search',
+  validators.searchPrompts,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const { searchTerm } = req.body;
+
+    const prompts = promptRepository.search(userId, searchTerm);
+
+    res.json({
+      results: prompts,
+      count: prompts.length
+    });
+  })
+);
+
+module.exports = router;

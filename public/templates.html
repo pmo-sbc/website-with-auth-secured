@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Studio - AI Prompt Templates</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/csrf-helper.js"></script>
+    <script src="js/session-manager.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e7;
+            min-height: 100vh;
+        }
+
+        .studio-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .studio-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        .studio-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .studio-tagline {
+            color: #a1a1aa;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        /* Search Bar - Featured at Top */
+        .search-section {
+            margin-bottom: 2rem;
+        }
+
+        .search-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #71717a;
+            font-size: 1.2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            color: #e4e4e7;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: #71717a;
+        }
+
+        /* Main Studio Layout - Side by Side */
+        .studio-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Left Panel - Blueprint Selector */
+        .blueprint-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            height: fit-content;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-header {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #a1a1aa;
+            margin-bottom: 1rem;
+        }
+
+        .selector-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .selector-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #d4d4d8;
+            margin-bottom: 0.5rem;
+        }
+
+        .selector-dropdown {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #e4e4e7;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .selector-dropdown:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .selector-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .selector-dropdown option {
+            background: #1a1a2e;
+            color: #e4e4e7;
+        }
+
+        .elite-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* Right Panel - Composer */
+        .composer-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .blueprint-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 2rem;
+            font-size: 0.925rem;
+            color: #d4d4d8;
+            font-style: italic;
+            line-height: 1.6;
+        }
+
+        .composer-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e4e4e7;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            font-size: 1.25rem;
+        }
+
+        /* Configuration Options */
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .config-field {
+            margin-bottom: 1.5rem;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #d4d4d8;
+            margin-bottom: 0.5rem;
+        }
+
+        .field-input,
+        .field-textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #e4e4e7;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .field-textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'Monaco', 'Courier New', monospace;
+            line-height: 1.6;
+        }
+
+        .field-input:focus,
+        .field-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .field-input::placeholder,
+        .field-textarea::placeholder {
+            color: #71717a;
+        }
+
+        /* Output Preview Section */
+        .output-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 200px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: #d4d4d8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .output-placeholder {
+            color: #71717a;
+            font-style: italic;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* Action Buttons */
+        .action-bar {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-bookmark {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-bookmark:hover {
+            background: rgba(245, 158, 11, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Result Modal */
+        .result-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .result-modal.active {
+            display: flex;
+        }
+
+        .result-container {
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 900px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            color: #a1a1aa;
+            font-size: 2rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e7;
+        }
+
+        .generated-output {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+            color: #e4e4e7;
+        }
+
+        /* AI Platform Buttons */
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.875rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .platform-btn {
+            padding: 0.875rem 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.925rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .platform-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .platform-chatgpt {
+            background: #10a37f;
+            color: white;
+        }
+
+        .platform-claude {
+            background: #d97757;
+            color: white;
+        }
+
+        .platform-gemini {
+            background: #4285f4;
+            color: white;
+        }
+
+        .platform-copilot {
+            background: #0078d4;
+            color: white;
+        }
+
+        .platform-perplexity {
+            background: #20808d;
+            color: white;
+        }
+
+        .platform-copy {
+            background: rgba(113, 113, 122, 0.3);
+            color: #e4e4e7;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .platform-copy:hover {
+            background: rgba(113, 113, 122, 0.5);
+        }
+
+        .platform-copy.copied {
+            background: #22c55e;
+            color: white;
+        }
+
+        .platform-bookmark {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .platform-bookmark:hover {
+            background: rgba(245, 158, 11, 0.25);
+        }
+
+        .platform-bookmark.saved {
+            background: #22c55e;
+            color: white;
+        }
+
+        .disclaimer {
+            text-align: center;
+            font-size: 0.825rem;
+            color: #71717a;
+            margin-top: 2rem;
+            font-style: italic;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .studio-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .blueprint-panel {
+                order: 1;
+            }
+
+            .composer-panel {
+                order: 2;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .studio-wrapper {
+                padding: 1rem;
+            }
+
+            .studio-title {
+                font-size: 2rem;
+            }
+
+            .studio-tagline {
+                font-size: 1rem;
+            }
+
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .platform-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-bar {
+                flex-direction: column;
+            }
+
+            .btn-action {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .result-container {
+                padding: 1.5rem;
+                max-height: 90vh;
+            }
+
+            .field-input,
+            .field-textarea,
+            .selector-dropdown,
+            .search-input {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .studio-wrapper {
+                padding: 0.75rem;
+            }
+
+            .studio-header {
+                margin-bottom: 2rem;
+                padding: 1rem 0;
+            }
+
+            .composer-panel {
+                padding: 1.25rem;
+            }
+
+            .blueprint-panel {
+                padding: 1.25rem;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <div class="logo-circle">AI</div>
+                <span class="logo-text">AI Prompt Templates</span>
+            </a>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="templates.html" class="active">Prompt Studio</a></li>
+                <li id="authLinks">
+                    <a href="login.html">Login</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="studio-wrapper">
+        <!-- Header -->
+        <div class="studio-header">
+            <h1 class="studio-title">Prompt Studio</h1>
+            <p class="studio-tagline">Craft professional AI prompts with expert-designed blueprints</p>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text"
+                       id="searchInput"
+                       class="search-input"
+                       placeholder="Search blueprints by keyword or topic...">
+            </div>
+        </div>
+
+        <!-- Main Studio Layout -->
+        <div class="studio-layout">
+            <!-- Left Panel: Blueprint Selector -->
+            <div class="blueprint-panel">
+                <div class="panel-header">Blueprint Library</div>
+
+                <div class="selector-group">
+                    <label class="selector-label">Domain</label>
+                    <select id="category" class="selector-dropdown">
+                        <option value="">Loading domains...</option>
+                    </select>
+                </div>
+
+                <div class="selector-group">
+                    <label class="selector-label">Specialty</label>
+                    <select id="subcategory" class="selector-dropdown">
+                        <option value="">Choose a specialty...</option>
+                    </select>
+                </div>
+
+                <div class="selector-group">
+                    <label class="selector-label">Blueprint</label>
+                    <select id="template" class="selector-dropdown">
+                        <option value="">Choose a blueprint...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Right Panel: Composer -->
+            <div class="composer-panel">
+                <div id="blueprintInfo" class="blueprint-info" style="display: none;">
+                    <div id="description"></div>
+                </div>
+
+                <!-- Configuration Options -->
+                <div class="composer-section">
+                    <div class="section-title">
+                        <span class="section-icon">⚙️</span>
+                        Output Configuration
+                    </div>
+                    <div class="config-grid">
+                        <div>
+                            <label class="field-label">Output Language</label>
+                            <select id="language" class="selector-dropdown">
+                                <option value="English">English</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Tone Profile</label>
+                            <select id="voiceTone" class="selector-dropdown">
+                                <option value="Default">Default</option>
+                                <option value="Authoritative">Authoritative</option>
+                                <option value="Caring">Caring</option>
+                                <option value="Casual">Casual</option>
+                                <option value="Cheerful">Cheerful</option>
+                                <option value="Conversational">Conversational</option>
+                                <option value="Creative">Creative</option>
+                                <option value="Enthusiastic">Enthusiastic</option>
+                                <option value="Formal">Formal</option>
+                                <option value="Friendly">Friendly</option>
+                                <option value="Professional">Professional</option>
+                                <option value="Witty">Witty</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="field-label">Composition Style</label>
+                            <select id="writingStyle" class="selector-dropdown">
+                                <option value="Default">Default</option>
+                                <option value="Academic">Academic</option>
+                                <option value="Analytical">Analytical</option>
+                                <option value="Conversational">Conversational</option>
+                                <option value="Creative">Creative</option>
+                                <option value="Descriptive">Descriptive</option>
+                                <option value="Informative">Informative</option>
+                                <option value="Persuasive">Persuasive</option>
+                                <option value="Technical">Technical</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Parameters -->
+                <div id="dynamicParameters" class="composer-section" style="display: none;">
+                    <div class="section-title">
+                        <span class="section-icon">📝</span>
+                        Blueprint Parameters
+                    </div>
+                    <div id="dynamicInputs"></div>
+                </div>
+
+                <!-- Output Preview -->
+                <div class="composer-section">
+                    <div class="section-title">
+                        <span class="section-icon">👁️</span>
+                        Prompt Preview
+                    </div>
+                    <div class="output-preview" id="promptTemplate">
+                        <div class="output-placeholder">
+                            Select a blueprint to preview the prompt structure...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-bar">
+                    <button class="btn-action btn-bookmark" id="saveBtn" style="display: none;">
+                        <span>⭐</span>
+                        <span id="saveBtnText">Bookmark</span>
+                    </button>
+                    <button class="btn-action btn-primary" id="executeBtn">
+                        <span>✨</span>
+                        <span>Generate Prompt</span>
+                    </button>
+                </div>
+
+                <div class="disclaimer">
+                    AI systems may produce inaccurate results. Always verify generated content for accuracy.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="result-modal" id="promptModal">
+        <div class="result-container">
+            <div class="result-header">
+                <h2 class="result-title">Your Generated Prompt</h2>
+                <button class="close-modal" id="closeModalBtn">×</button>
+            </div>
+
+            <div class="generated-output" id="generatedPrompt"></div>
+
+            <div class="platform-grid">
+                <button class="platform-btn platform-chatgpt" data-ai="chatgpt">
+                    <span>🤖</span>
+                    <span>ChatGPT</span>
+                </button>
+                <button class="platform-btn platform-claude" data-ai="claude">
+                    <span>🧠</span>
+                    <span>Claude</span>
+                </button>
+                <button class="platform-btn platform-gemini" data-ai="gemini">
+                    <span>✨</span>
+                    <span>Gemini</span>
+                </button>
+                <button class="platform-btn platform-copilot" data-ai="copilot">
+                    <span>💡</span>
+                    <span>Copilot</span>
+                </button>
+                <button class="platform-btn platform-perplexity" data-ai="perplexity">
+                    <span>🔍</span>
+                    <span>Perplexity</span>
+                </button>
+                <button class="platform-btn platform-copy" id="copyBtn">
+                    <span>📋</span>
+                    <span id="copyBtnText">Copy</span>
+                </button>
+                <button class="platform-btn platform-copy" id="downloadBtn">
+                    <span>💾</span>
+                    <span>Export</span>
+                </button>
+                <button class="platform-btn platform-bookmark" id="savePromptBtn" style="display: none;">
+                    <span>⭐</span>
+                    <span id="savePromptBtnText">Save Prompt</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let generatedPromptText = '';
+        let allTemplates = {};
+        let templates = {};
+
+        // Authentication Check
+        function checkAuth() {
+            const token = localStorage.getItem('authToken');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const navMenu = document.getElementById('navMenu');
+
+            if (token && user.name) {
+                // User is logged in - show full menu with username and tokens
+                const tokens = user.tokens !== undefined ? user.tokens : '...';
+                navMenu.innerHTML = `
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="templates.html" class="active">Prompt Studio</a></li>
+                    <li><a href="/dashboard">Dashboard</a></li>
+                    <li id="adminMenuLink" style="display: none;"><a href="/admin/users">User Management</a></li>
+                    <li style="color: #a1a1aa; display: flex; align-items: center; padding: 0 1rem;">Welcome, ${user.name} | 🪙 ${tokens} tokens</li>
+                    <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
+                `;
+
+                // Show admin menu if user is admin
+                if (user.is_admin) {
+                    document.getElementById('adminMenuLink').style.display = 'list-item';
+                }
+
+                // Add logout handler
+                setTimeout(() => {
+                    const logoutBtn = document.getElementById('logoutBtn');
+                    if (logoutBtn) {
+                        logoutBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            logout();
+                        });
+                    }
+                }, 0);
+            } else {
+                // User is not logged in
+                navMenu.innerHTML = `
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="templates.html" class="active">Prompt Studio</a></li>
+                    <li><a href="login.html">Login</a></li>
+                    <li><a href="register.html" class="btn-primary">Sign Up</a></li>
+                `;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        checkAuth();
+
+        // Load Templates from API
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/templates');
+                allTemplates = await response.json();
+
+                for (const [category, subcategories] of Object.entries(allTemplates)) {
+                    for (const [subcategory, templateList] of Object.entries(subcategories)) {
+                        if (!templates[subcategory]) {
+                            templates[subcategory] = {};
+                        }
+                        templateList.forEach(template => {
+                            templates[subcategory][template.name] = {
+                                description: template.description,
+                                inputs: template.inputs,
+                                prompt: template.prompt_template,
+                                premium: template.is_premium,
+                                id: template.id
+                            };
+                        });
+                    }
+                }
+
+                populateCategories();
+            } catch (error) {
+                console.error('Error loading templates:', error);
+                alert('Failed to load blueprints. Please refresh the page.');
+            }
+        }
+
+        function populateCategories() {
+            const categorySelect = document.getElementById('category');
+            const subcategorySelect = document.getElementById('subcategory');
+
+            categorySelect.innerHTML = '';
+            subcategorySelect.innerHTML = '<option value="">Choose a specialty...</option>';
+
+            Object.keys(allTemplates).forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            });
+
+            if (Object.keys(allTemplates).length > 0) {
+                const firstCategory = Object.keys(allTemplates)[0];
+                categorySelect.value = firstCategory;
+                loadSubcategories(firstCategory);
+            }
+        }
+
+        function loadSubcategories(category) {
+            const subcategorySelect = document.getElementById('subcategory');
+            subcategorySelect.innerHTML = '<option value="">Choose a specialty...</option>';
+
+            if (allTemplates[category]) {
+                Object.keys(allTemplates[category]).forEach(subcategory => {
+                    const option = document.createElement('option');
+                    option.value = subcategory;
+                    option.textContent = subcategory;
+                    subcategorySelect.appendChild(option);
+                });
+            }
+        }
+
+        // DOM Elements
+        const categorySelect = document.getElementById('category');
+        const subcategorySelect = document.getElementById('subcategory');
+        const templateSelect = document.getElementById('template');
+        const searchInput = document.getElementById('searchInput');
+        const descriptionDiv = document.getElementById('description');
+        const dynamicInputsDiv = document.getElementById('dynamicInputs');
+        const promptTemplateDiv = document.getElementById('promptTemplate');
+        const blueprintInfo = document.getElementById('blueprintInfo');
+        const dynamicParameters = document.getElementById('dynamicParameters');
+
+        // Category change listener
+        categorySelect.addEventListener('change', function() {
+            loadSubcategories(this.value);
+            templateSelect.innerHTML = '<option value="">Choose a blueprint...</option>';
+            resetComposer();
+        });
+
+        // Subcategory change listener
+        subcategorySelect.addEventListener('change', function() {
+            const subcategory = this.value;
+            templateSelect.innerHTML = '<option value="">Choose a blueprint...</option>';
+            resetComposer();
+
+            if (subcategory && templates[subcategory]) {
+                Object.keys(templates[subcategory]).forEach(templateName => {
+                    const option = document.createElement('option');
+                    option.value = templateName;
+                    option.textContent = templateName;
+                    templateSelect.appendChild(option);
+                });
+            }
+        });
+
+        // Template change listener
+        templateSelect.addEventListener('change', function() {
+            const subcategory = subcategorySelect.value;
+            const templateName = this.value;
+
+            if (subcategory && templateName && templates[subcategory][templateName]) {
+                const template = templates[subcategory][templateName];
+
+                // Show description
+                let desc = template.description;
+                if (template.premium) {
+                    desc += ' <span class="elite-badge">ELITE</span>';
+                }
+                descriptionDiv.innerHTML = desc;
+                blueprintInfo.style.display = 'block';
+
+                // Generate dynamic inputs
+                dynamicInputsDiv.innerHTML = '';
+                if (template.inputs && template.inputs.length > 0) {
+                    dynamicParameters.style.display = 'block';
+                    template.inputs.forEach(input => {
+                        const field = document.createElement('div');
+                        field.className = 'config-field';
+
+                        const label = document.createElement('label');
+                        label.className = 'field-label';
+                        label.textContent = input.label;
+
+                        let inputElement;
+                        if (input.type === 'textarea') {
+                            inputElement = document.createElement('textarea');
+                            inputElement.className = 'field-textarea';
+                            inputElement.placeholder = input.label;
+                        } else if (input.type === 'number') {
+                            inputElement = document.createElement('input');
+                            inputElement.type = 'number';
+                            inputElement.className = 'field-input';
+                            inputElement.value = input.value || '';
+                        } else {
+                            inputElement = document.createElement('input');
+                            inputElement.type = 'text';
+                            inputElement.className = 'field-input';
+                            inputElement.placeholder = input.label;
+                            if (input.value) {
+                                inputElement.value = input.value;
+                            }
+                        }
+                        inputElement.id = `input-${input.name}`;
+                        inputElement.setAttribute('data-name', input.name);
+
+                        field.appendChild(label);
+                        field.appendChild(inputElement);
+                        dynamicInputsDiv.appendChild(field);
+                    });
+                } else {
+                    dynamicParameters.style.display = 'none';
+                }
+
+                // Set prompt preview
+                promptTemplateDiv.textContent = template.prompt;
+                promptTemplateDiv.style.color = '#e4e4e7';
+
+                // Show/update bookmark button
+                updateBookmarkButton(template.id, template.isSaved);
+            } else {
+                resetComposer();
+            }
+        });
+
+        function resetComposer() {
+            descriptionDiv.textContent = '';
+            blueprintInfo.style.display = 'none';
+            dynamicInputsDiv.innerHTML = '';
+            dynamicParameters.style.display = 'none';
+            promptTemplateDiv.innerHTML = '<div class="output-placeholder">Select a blueprint to preview the prompt structure...</div>';
+            document.getElementById('saveBtn').style.display = 'none';
+        }
+
+        // Search functionality
+        searchInput.addEventListener('input', async function() {
+            const query = this.value.trim();
+
+            if (query.length < 2) {
+                populateCategories();
+                templateSelect.innerHTML = '<option value="">Choose a blueprint...</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/templates/search?q=${encodeURIComponent(query)}`);
+                const results = await response.json();
+
+                if (results.length === 0) {
+                    templateSelect.innerHTML = '<option value="">No blueprints found</option>';
+                    return;
+                }
+
+                templateSelect.innerHTML = '<option value="">Select from search results...</option>';
+
+                results.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.name;
+                    option.textContent = `${template.name} (${template.category} - ${template.subcategory})`;
+                    option.setAttribute('data-subcategory', template.subcategory);
+                    option.setAttribute('data-category', template.category);
+                    templateSelect.appendChild(option);
+
+                    if (!templates[template.subcategory]) {
+                        templates[template.subcategory] = {};
+                    }
+                    templates[template.subcategory][template.name] = {
+                        description: template.description,
+                        inputs: template.inputs,
+                        prompt: template.prompt_template,
+                        premium: template.is_premium,
+                        id: template.id
+                    };
+                });
+
+                if (results.length > 0) {
+                    categorySelect.value = results[0].category;
+                    loadSubcategories(results[0].category);
+                    subcategorySelect.value = results[0].subcategory;
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+            }
+        });
+
+        // Bookmark functionality
+        function updateBookmarkButton(templateId, isSaved) {
+            const token = localStorage.getItem('authToken');
+            const saveBtn = document.getElementById('saveBtn');
+            const saveBtnText = document.getElementById('saveBtnText');
+
+            if (!token) {
+                saveBtn.style.display = 'none';
+                return;
+            }
+
+            saveBtn.style.display = 'flex';
+            saveBtnText.textContent = isSaved ? 'Bookmarked' : 'Bookmark';
+            saveBtn.setAttribute('data-template-id', templateId);
+            saveBtn.setAttribute('data-is-saved', isSaved ? 'true' : 'false');
+        }
+
+        async function toggleSaveTemplate() {
+            const saveBtn = document.getElementById('saveBtn');
+            const saveBtnText = document.getElementById('saveBtnText');
+            const templateId = saveBtn.getAttribute('data-template-id');
+            const isSaved = saveBtn.getAttribute('data-is-saved') === 'true';
+            const token = localStorage.getItem('authToken');
+
+            if (!token || !templateId) {
+                alert('Please log in to bookmark blueprints');
+                return;
+            }
+
+            try {
+                const method = isSaved ? 'DELETE' : 'POST';
+                const response = await fetch(`/api/templates/${templateId}/save`, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const newIsSaved = !isSaved;
+                    updateBookmarkButton(templateId, newIsSaved);
+
+                    const subcategory = subcategorySelect.value;
+                    const templateName = templateSelect.value;
+                    if (templates[subcategory][templateName]) {
+                        templates[subcategory][templateName].isSaved = newIsSaved;
+                    }
+
+                    saveBtnText.textContent = newIsSaved ? 'Bookmarked!' : 'Removed';
+                    setTimeout(() => {
+                        updateBookmarkButton(templateId, newIsSaved);
+                    }, 1000);
+                } else {
+                    alert('Failed to bookmark. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error bookmarking:', error);
+                alert('Failed to bookmark. Please try again.');
+            }
+        }
+
+        // Generate Prompt
+        async function executeTemplate() {
+            const subcategory = subcategorySelect.value;
+            const templateName = templateSelect.value;
+            const category = categorySelect.value;
+
+            if (!subcategory) {
+                alert('⚠️ Please select a specialty first.');
+                return;
+            }
+
+            if (!templateName) {
+                alert('⚠️ Please select a blueprint first.');
+                return;
+            }
+
+            const template = templates[subcategory][templateName];
+            if (!template) {
+                alert('⚠️ Blueprint not found.');
+                return;
+            }
+
+            // Check if user is logged in for token deduction
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // Determine token cost (1 for normal, 5 for premium)
+                const tokenCost = template.premium ? 5 : 1;
+
+                try {
+                    // Call token deduction endpoint
+                    const tokenResponse = await fetchWithCsrf('/api/generate-prompt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            isPremium: template.premium || false,
+                            templateName: templateName
+                        })
+                    });
+
+                    if (!tokenResponse.ok) {
+                        const errorData = await tokenResponse.json();
+                        if (tokenResponse.status === 402) {
+                            // Insufficient tokens
+                            alert(`⚠️ Insufficient tokens!\n\n${errorData.message}\n\nYou have ${errorData.tokensAvailable} token(s) but need ${errorData.tokensRequired} token(s) to generate this prompt.`);
+                            return;
+                        } else {
+                            alert(`⚠️ Error: ${errorData.message || 'Failed to process token deduction'}`);
+                            return;
+                        }
+                    }
+
+                    // Successfully deducted tokens - update user's token count in localStorage
+                    const tokenData = await tokenResponse.json();
+                    const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    user.tokens = tokenData.remainingTokens;
+                    localStorage.setItem('user', JSON.stringify(user));
+
+                    // Update token display in navigation
+                    checkAuth();
+                } catch (error) {
+                    console.error('Token deduction error:', error);
+                    alert('⚠️ Failed to process token deduction. Please try again.');
+                    return;
+                }
+            }
+
+            let finalPrompt = template.prompt;
+
+            // Replace placeholders
+            const inputs = dynamicInputsDiv.querySelectorAll('input, textarea');
+            inputs.forEach(input => {
+                const value = input.value.trim() || `[${input.placeholder}]`;
+                finalPrompt = finalPrompt.replace('""', `"${value}"`);
+            });
+
+            // Track usage
+            if (token && template.id) {
+                try {
+                    await fetch('/api/usage', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            templateName: templateName,
+                            category: category
+                        })
+                    });
+                } catch (error) {
+                    console.error('Failed to track usage:', error);
+                }
+            }
+
+            // Show modal
+            generatedPromptText = finalPrompt;
+            document.getElementById('generatedPrompt').textContent = finalPrompt;
+            document.getElementById('promptModal').classList.add('active');
+
+            // Reset copy button
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.classList.remove('copied');
+            document.getElementById('copyBtnText').textContent = 'Copy';
+
+            // Show/hide save prompt button
+            const savePromptBtn = document.getElementById('savePromptBtn');
+            const savePromptBtnText = document.getElementById('savePromptBtnText');
+            if (token) {
+                savePromptBtn.style.display = 'flex';
+                savePromptBtn.classList.remove('saved');
+                savePromptBtnText.textContent = 'Save Prompt';
+            } else {
+                savePromptBtn.style.display = 'none';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('promptModal').classList.remove('active');
+        }
+
+        function copyToClipboard() {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(generatedPromptText).then(() => {
+                    const copyBtn = document.getElementById('copyBtn');
+                    const copyBtnText = document.getElementById('copyBtnText');
+                    copyBtn.classList.add('copied');
+                    copyBtnText.textContent = '✓ Copied';
+
+                    setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        copyBtnText.textContent = 'Copy';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Clipboard error:', err);
+                    alert('Failed to copy. Please copy manually.');
+                });
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = generatedPromptText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const copyBtn = document.getElementById('copyBtn');
+                    const copyBtnText = document.getElementById('copyBtnText');
+                    copyBtn.classList.add('copied');
+                    copyBtnText.textContent = '✓ Copied';
+
+                    setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        copyBtnText.textContent = 'Copy';
+                    }, 2000);
+                } catch (err) {
+                    alert('Failed to copy. Please copy manually.');
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function downloadPrompt() {
+            const templateName = templateSelect.value || 'prompt';
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `${templateName.replace(/[^a-z0-9]/gi, '_')}_${timestamp}.txt`;
+
+            const blob = new Blob([generatedPromptText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function savePromptToAccount() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Please log in to save prompts');
+                return;
+            }
+
+            const templateName = templateSelect.value;
+            const category = categorySelect.value;
+            const subcategory = subcategorySelect.value;
+
+            if (!templateName || !generatedPromptText) {
+                alert('No prompt to save');
+                return;
+            }
+
+            const savePromptBtn = document.getElementById('savePromptBtn');
+            const savePromptBtnText = document.getElementById('savePromptBtnText');
+
+            // Collect inputs
+            const inputs = {};
+            const inputElements = dynamicInputsDiv.querySelectorAll('input, textarea');
+            inputElements.forEach(input => {
+                const name = input.getAttribute('data-name');
+                inputs[name] = input.value;
+            });
+
+            try {
+                savePromptBtnText.textContent = 'Saving...';
+
+                const response = await fetchWithCsrf('/api/prompts/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        templateName: templateName,
+                        category: `${category} - ${subcategory}`,
+                        promptText: generatedPromptText,
+                        inputs: inputs
+                    })
+                });
+
+                if (response.ok) {
+                    savePromptBtn.classList.add('saved');
+                    savePromptBtnText.textContent = 'Saved!';
+                    setTimeout(() => {
+                        savePromptBtnText.textContent = 'Saved';
+                    }, 1000);
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Failed to save prompt. Please try again.');
+                    savePromptBtnText.textContent = 'Save Prompt';
+                }
+            } catch (error) {
+                console.error('Error saving prompt:', error);
+                alert('Failed to save prompt. Please try again.');
+                savePromptBtnText.textContent = 'Save Prompt';
+            }
+        }
+
+        function submitToAI(aiService) {
+            const encodedPrompt = encodeURIComponent(generatedPromptText);
+            let url = '';
+
+            switch(aiService) {
+                case 'chatgpt':
+                    url = `https://chat.openai.com/?q=${encodedPrompt}`;
+                    break;
+                case 'claude':
+                    url = `https://claude.ai/new?q=${encodedPrompt}`;
+                    break;
+                case 'gemini':
+                    url = `https://gemini.google.com/app?q=${encodedPrompt}`;
+                    break;
+                case 'copilot':
+                    url = `https://copilot.microsoft.com/?q=${encodedPrompt}`;
+                    break;
+                case 'perplexity':
+                    url = `https://www.perplexity.ai/?q=${encodedPrompt}`;
+                    break;
+                default:
+                    alert('Unknown platform');
+                    return;
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(generatedPromptText);
+            }
+
+            window.open(url, '_blank');
+        }
+
+        // Event Listeners
+        document.getElementById('executeBtn').addEventListener('click', executeTemplate);
+        document.getElementById('saveBtn').addEventListener('click', toggleSaveTemplate);
+        document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+        document.getElementById('copyBtn').addEventListener('click', copyToClipboard);
+        document.getElementById('downloadBtn').addEventListener('click', downloadPrompt);
+        document.getElementById('savePromptBtn').addEventListener('click', savePromptToAccount);
+
+        document.querySelectorAll('.platform-btn[data-ai]').forEach(button => {
+            button.addEventListener('click', function() {
+                const aiService = this.getAttribute('data-ai');
+                submitToAI(aiService);
+            });
+        });
+
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('promptModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Load templates on page load
+        loadTemplates();
+    </script>
+</body>
+</html>
