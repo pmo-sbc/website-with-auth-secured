@@ -145,6 +145,123 @@
             font-weight: 700;
             color: var(--primary-color);
         }
+
+        .btn-add-tokens {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: 1px solid #27ae60;
+            background: transparent;
+            color: #27ae60;
+            transition: all 0.3s;
+            margin-right: 0.5rem;
+        }
+
+        .btn-add-tokens:hover {
+            background: #27ae60;
+            color: white;
+        }
+
+        .token-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: #3498db;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 10% auto;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-close {
+            color: var(--text-secondary);
+            float: right;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            background: #c0392b;
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -199,6 +316,7 @@
                         <th>Username</th>
                         <th>Email</th>
                         <th>Status</th>
+                        <th>Tokens</th>
                         <th>Created At</th>
                         <th>Actions</th>
                     </tr>
@@ -209,6 +327,31 @@
             <div id="emptyState" class="empty-state" style="display: none;">
                 <h3>No users found</h3>
             </div>
+        </div>
+    </div>
+
+    <!-- Add Tokens Modal -->
+    <div id="addTokensModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-close" id="closeModal">&times;</span>
+                <h2>Add Tokens</h2>
+            </div>
+            <form id="addTokensForm">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="modalUsername" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Current Token Balance</label>
+                    <input type="text" id="modalCurrentTokens" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tokens to Add</label>
+                    <input type="number" id="modalTokenAmount" class="form-input" min="1" step="1" placeholder="Enter amount" required>
+                </div>
+                <button type="submit" class="btn-submit" id="submitTokens">Add Tokens</button>
+            </form>
         </div>
     </div>
 
@@ -263,8 +406,14 @@
                             ${user.email_verified ? 'Verified' : 'Unverified'}
                         </span>
                     </td>
+                    <td>
+                        <span class="token-badge">🪙 ${user.tokens || 0}</span>
+                    </td>
                     <td>${new Date(user.created_at).toLocaleString()}</td>
                     <td>
+                        <button class="btn-add-tokens" data-user-id="${user.id}" data-username="${user.username}" data-tokens="${user.tokens || 0}">
+                            Add Tokens
+                        </button>
                         <button class="btn-delete-user" data-user-id="${user.id}" data-username="${user.username}">
                             Delete
                         </button>
@@ -272,7 +421,17 @@
                 </tr>
             `).join('');
 
-            // Attach delete event listeners
+            // Attach event listeners
+            tbody.querySelectorAll('.btn-add-tokens').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    openAddTokensModal(
+                        this.getAttribute('data-user-id'),
+                        this.getAttribute('data-username'),
+                        this.getAttribute('data-tokens')
+                    );
+                });
+            });
+
             tbody.querySelectorAll('.btn-delete-user').forEach(btn => {
                 btn.addEventListener('click', function() {
                     deleteUser(this.getAttribute('data-user-id'), this.getAttribute('data-username'));
@@ -324,11 +483,79 @@
             }
         }
 
+        // Modal management
+        let currentUserId = null;
+
+        function openAddTokensModal(userId, username, currentTokens) {
+            currentUserId = userId;
+            document.getElementById('modalUsername').value = username;
+            document.getElementById('modalCurrentTokens').value = `${currentTokens} tokens`;
+            document.getElementById('modalTokenAmount').value = '';
+            document.getElementById('addTokensModal').style.display = 'block';
+        }
+
+        function closeAddTokensModal() {
+            document.getElementById('addTokensModal').style.display = 'none';
+            currentUserId = null;
+        }
+
+        // Add tokens to user
+        async function addTokensToUser(event) {
+            event.preventDefault();
+
+            const amount = parseInt(document.getElementById('modalTokenAmount').value);
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitTokens');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adding...';
+
+            try {
+                const response = await fetchWithCsrf(`/api/admin/users/${currentUserId}/tokens`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ amount })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message + `\nNew balance: ${data.newBalance} tokens`);
+                    closeAddTokensModal();
+                    loadUsers(); // Reload users to show updated tokens
+                } else {
+                    alert(data.error || 'Failed to add tokens');
+                }
+            } catch (error) {
+                console.error('Error adding tokens:', error);
+                alert('Failed to add tokens. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Tokens';
+            }
+        }
+
         // Event listeners
         document.getElementById('logoutBtn').addEventListener('click', function(e) {
             e.preventDefault();
             logout();
         });
+
+        document.getElementById('closeModal').addEventListener('click', closeAddTokensModal);
+
+        document.getElementById('addTokensModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddTokensModal();
+            }
+        });
+
+        document.getElementById('addTokensForm').addEventListener('submit', addTokensToUser);
 
         // Initialize
         loadUsers();

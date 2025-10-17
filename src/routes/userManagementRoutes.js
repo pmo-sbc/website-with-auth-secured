@@ -33,7 +33,7 @@ router.get('/api/admin/users', requireAdmin, asyncHandler(async (req, res) => {
   try {
     logger.db('SELECT', 'users', { action: 'list_all_users' });
     const users = db.prepare(`
-      SELECT id, username, email, email_verified, created_at
+      SELECT id, username, email, email_verified, tokens, created_at
       FROM users
       ORDER BY created_at DESC
     `).all();
@@ -78,6 +78,47 @@ router.delete('/api/admin/users/:id', requireAdmin, csrfProtection, asyncHandler
   res.json({
     success: true,
     message: 'User deleted successfully'
+  });
+}));
+
+/**
+ * PATCH /api/admin/users/:id/tokens
+ * Add tokens to a user account
+ */
+router.patch('/api/admin/users/:id/tokens', requireAdmin, csrfProtection, asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { amount } = req.body;
+
+  // Validate amount
+  if (!amount || typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({
+      error: 'Invalid token amount. Must be a positive number.'
+    });
+  }
+
+  // Add tokens to user
+  const success = userRepository.addTokens(userId, amount);
+
+  if (!success) {
+    return res.status(404).json({
+      error: 'User not found'
+    });
+  }
+
+  // Get updated token balance
+  const newBalance = userRepository.getTokens(userId);
+
+  logger.info('Tokens added to user', {
+    userId,
+    amount,
+    newBalance,
+    addedBy: req.session.userId
+  });
+
+  res.json({
+    success: true,
+    message: `${amount} token${amount > 1 ? 's' : ''} added successfully`,
+    newBalance
   });
 }));
 
