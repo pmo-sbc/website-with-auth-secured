@@ -5,20 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Professional AI prompt templates for marketing. Generate high-quality prompts for ChatGPT, Claude, Gemini, and more.">
     <title>AI Prompt Templates - Professional Marketing Prompts</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
-            <div class="logo">
-                <div class="logo-circle">AI</div>
-                <span class="logo-text">AI Prompt Templates</span>
-            </div>
+            <a href="/" class="logo">
+                <div class="logo-circle">
+                    <img src="images/logo.png" alt="SBC Services Logo">
+                </div>
+            </a>
             <ul class="nav-menu">
                 <li><a href="/">Home</a></li>
-                <li><a href="/templates.html">Templates</a></li>
-                <li><a href="/about.html">About</a></li>
                 <li><a href="/login">Login</a></li>
                 <li><a href="/signup" class="btn-primary">Sign Up</a></li>
             </ul>
@@ -31,7 +31,7 @@
             <h1 class="hero-title">Create Professional AI Prompts in Seconds</h1>
             <p class="hero-subtitle">27+ expertly crafted templates for marketing, PR, influencer campaigns, and more. Works with ChatGPT, Claude, Gemini, Copilot, and all major AI assistants.</p>
             <div class="hero-buttons">
-                <a href="templates.html" class="btn-hero-primary">Start Creating</a>
+                <a href="/signup" class="btn-hero-primary">Get Started</a>
                 <a href="#features" class="btn-hero-secondary">Learn More</a>
             </div>
             <div class="hero-stats">
@@ -195,7 +195,7 @@
         <div class="cta-container">
             <h2>Ready to Create Better AI Prompts?</h2>
             <p>Start using professional templates today</p>
-            <a href="templates.html" class="btn-cta">Get Started Free</a>
+            <a href="/signup" class="btn-cta">Get Started Free</a>
         </div>
     </section>
 
@@ -205,8 +205,9 @@
             <div class="footer-content">
                 <div class="footer-brand">
                     <div class="logo">
-                        <div class="logo-circle">AI</div>
-                        <span class="logo-text">AI Prompt Templates</span>
+                        <div class="logo-circle">
+                            <img src="images/logo.png" alt="SBC Services Logo">
+                        </div>
                     </div>
                     <p class="footer-description">Professional AI prompt templates for marketing professionals.</p>
                 </div>
@@ -247,8 +248,8 @@
                 const tokens = user.tokens !== undefined ? user.tokens : '...';
                 navMenu.innerHTML = `
                     <li><a href="/">Home</a></li>
-                    <li><a href="/templates.html">Templates</a></li>
-                    <li><a href="/dashboard">Dashboard</a></li>
+                    <li><a href="/templates.html">Prompt Studio</a></li>
+                    <li><a href="/dashboard">My Vault</a></li>
                     <li id="adminMenuLink" style="display: none;"><a href="/admin/users">User Management</a></li>
                     <li style="color: #a1a1aa; display: flex; align-items: center; padding: 0 1rem;">Welcome, ${user.name} | 🪙 ${tokens} tokens</li>
                     <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
@@ -268,20 +269,58 @@
                     });
                 }
             } else {
-                // User is not logged in - show login and signup (no About page)
+                // User is not logged in - show login and signup only
                 navMenu.innerHTML = `
                     <li><a href="/">Home</a></li>
-                    <li><a href="/templates.html">Templates</a></li>
                     <li><a href="/login">Login</a></li>
                     <li><a href="/signup" class="btn-primary">Sign Up</a></li>
                 `;
             }
         }
 
-        function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+        // Get CSRF token from cookie
+        function getCsrfToken() {
+            const name = 'XSRF-TOKEN=';
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const cookieArray = decodedCookie.split(';');
+
+            for (let i = 0; i < cookieArray.length; i++) {
+                let cookie = cookieArray[i].trim();
+                if (cookie.indexOf(name) === 0) {
+                    return cookie.substring(name.length, cookie.length);
+                }
+            }
+            return null;
+        }
+
+        async function logout() {
+            try {
+                const csrfToken = getCsrfToken();
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                // Clear local storage
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    console.error('Logout failed:', response.status);
+                    // Redirect anyway
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Clear local storage and redirect anyway on error
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
         }
 
         // Run auth check on page load

@@ -37,6 +37,7 @@ const pageRoutes = require('./src/routes/pageRoutes');
 const templateRoutes = require('./src/routes/templateRoutes');
 const userManagementRoutes = require('./src/routes/userManagementRoutes');
 const generatePromptRoutes = require('./src/routes/generatePromptRoutes');
+const projectRoutes = require('./src/routes/projectRoutes');
 
 // Initialize Express app
 const app = express();
@@ -101,12 +102,16 @@ app.use('/', pageRoutes);
 // User management routes
 app.use('/', userManagementRoutes);
 
+// Project routes
+app.use('/', projectRoutes);
+
 // API routes
 app.use('/api/prompts', promptRoutes);
 app.use('/api/usage', statsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api', generatePromptRoutes);
+app.use('/api', projectRoutes);
 
 // ===== ERROR HANDLING =====
 

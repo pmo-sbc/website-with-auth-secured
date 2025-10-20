@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prompt Studio - AI Prompt Templates</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/csrf-helper.js"></script>
     <script src="js/session-manager.js"></script>
@@ -89,6 +90,89 @@
 
         .search-input::placeholder {
             color: #71717a;
+        }
+
+        .clear-search-btn {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: #71717a;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .clear-search-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e7;
+        }
+
+        .search-info {
+            text-align: center;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            color: #d4d4d8;
+            font-size: 0.925rem;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .filter-header {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #a1a1aa;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.6rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            color: #d4d4d8;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(102, 126, 234, 0.5);
+            color: #e4e4e7;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+            font-weight: 600;
         }
 
         /* Main Studio Layout - Side by Side */
@@ -611,8 +695,9 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">
-                <div class="logo-circle">AI</div>
-                <span class="logo-text">AI Prompt Templates</span>
+                <div class="logo-circle">
+                    <img src="images/logo.png" alt="SBC Services Logo">
+                </div>
             </a>
             <ul class="nav-menu" id="navMenu">
                 <li><a href="index.html">Home</a></li>
@@ -639,6 +724,16 @@
                        id="searchInput"
                        class="search-input"
                        placeholder="Search blueprints by keyword or topic...">
+                <button class="clear-search-btn" id="clearSearchBtn" style="display: none;" title="Clear search">×</button>
+            </div>
+            <div class="search-info" id="searchInfo" style="display: none;"></div>
+        </div>
+
+        <!-- Category Filter Buttons -->
+        <div class="filter-section" id="filterSection">
+            <div class="filter-header">Quick Filters:</div>
+            <div class="filter-buttons" id="filterButtons">
+                <button class="filter-btn active" data-category="all">All Templates</button>
             </div>
         </div>
 
@@ -774,6 +869,16 @@
 
             <div class="generated-output" id="generatedPrompt"></div>
 
+            <!-- Project Selection for Save (only shown for logged-in users) -->
+            <div id="projectSelectionSection" style="display: none; margin-bottom: 1.5rem;">
+                <label class="field-label" style="color: #d4d4d8; margin-bottom: 0.5rem; display: block;">
+                    📁 Save to Project (Optional)
+                </label>
+                <select id="projectDropdown" class="selector-dropdown">
+                    <option value="">No Project</option>
+                </select>
+            </div>
+
             <div class="platform-grid">
                 <button class="platform-btn platform-chatgpt" data-ai="chatgpt">
                     <span>🤖</span>
@@ -815,6 +920,8 @@
         let generatedPromptText = '';
         let allTemplates = {};
         let templates = {};
+        let currentFilter = 'all';
+        let searchQuery = '';
 
         // Authentication Check
         function checkAuth() {
@@ -828,7 +935,7 @@
                 navMenu.innerHTML = `
                     <li><a href="index.html">Home</a></li>
                     <li><a href="templates.html" class="active">Prompt Studio</a></li>
-                    <li><a href="/dashboard">Dashboard</a></li>
+                    <li><a href="/dashboard">My Vault</a></li>
                     <li id="adminMenuLink" style="display: none;"><a href="/admin/users">User Management</a></li>
                     <li style="color: #a1a1aa; display: flex; align-items: center; padding: 0 1rem;">Welcome, ${user.name} | 🪙 ${tokens} tokens</li>
                     <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
@@ -892,10 +999,58 @@
                 }
 
                 populateCategories();
+                populateFilterButtons();
             } catch (error) {
                 console.error('Error loading templates:', error);
                 alert('Failed to load blueprints. Please refresh the page.');
             }
+        }
+
+        // Populate filter buttons based on categories
+        function populateFilterButtons() {
+            const filterButtons = document.getElementById('filterButtons');
+            filterButtons.innerHTML = '<button class="filter-btn active" data-category="all">All Templates</button>';
+
+            Object.keys(allTemplates).forEach(category => {
+                const button = document.createElement('button');
+                button.className = 'filter-btn';
+                button.setAttribute('data-category', category);
+                button.textContent = category;
+                button.addEventListener('click', function() {
+                    handleFilterClick(category);
+                });
+                filterButtons.appendChild(button);
+            });
+        }
+
+        // Handle filter button click
+        function handleFilterClick(category) {
+            currentFilter = category;
+
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-category') === category) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Apply filter
+            if (category === 'all') {
+                populateCategories();
+            } else {
+                categorySelect.value = category;
+                loadSubcategories(category);
+            }
+
+            // Clear search
+            searchInput.value = '';
+            searchQuery = '';
+            document.getElementById('clearSearchBtn').style.display = 'none';
+            document.getElementById('searchInfo').style.display = 'none';
+
+            templateSelect.innerHTML = '<option value="">Choose a blueprint...</option>';
+            resetComposer();
         }
 
         function populateCategories() {
@@ -1048,9 +1203,22 @@
         // Search functionality
         searchInput.addEventListener('input', async function() {
             const query = this.value.trim();
+            searchQuery = query;
+
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const searchInfo = document.getElementById('searchInfo');
+
+            // Show/hide clear button
+            clearBtn.style.display = query ? 'flex' : 'none';
 
             if (query.length < 2) {
-                populateCategories();
+                searchInfo.style.display = 'none';
+                if (currentFilter === 'all') {
+                    populateCategories();
+                } else {
+                    categorySelect.value = currentFilter;
+                    loadSubcategories(currentFilter);
+                }
                 templateSelect.innerHTML = '<option value="">Choose a blueprint...</option>';
                 return;
             }
@@ -1058,6 +1226,10 @@
             try {
                 const response = await fetch(`/api/templates/search?q=${encodeURIComponent(query)}`);
                 const results = await response.json();
+
+                // Show search info
+                searchInfo.style.display = 'block';
+                searchInfo.textContent = `Found ${results.length} blueprint${results.length !== 1 ? 's' : ''} matching "${query}"`;
 
                 if (results.length === 0) {
                     templateSelect.innerHTML = '<option value="">No blueprints found</option>';
@@ -1093,7 +1265,34 @@
                 }
             } catch (error) {
                 console.error('Search error:', error);
+                searchInfo.style.display = 'block';
+                searchInfo.textContent = 'Search failed. Please try again.';
+                searchInfo.style.background = 'rgba(239, 68, 68, 0.1)';
+                searchInfo.style.borderColor = 'rgba(239, 68, 68, 0.3)';
             }
+        });
+
+        // Clear search button
+        document.getElementById('clearSearchBtn').addEventListener('click', function() {
+            searchInput.value = '';
+            searchQuery = '';
+            this.style.display = 'none';
+            document.getElementById('searchInfo').style.display = 'none';
+
+            // Reset to current filter or all
+            if (currentFilter === 'all') {
+                populateCategories();
+            } else {
+                categorySelect.value = currentFilter;
+                loadSubcategories(currentFilter);
+            }
+            templateSelect.innerHTML = '<option value="">Choose a blueprint...</option>';
+            resetComposer();
+        });
+
+        // Add "All Templates" filter button listener
+        document.querySelector('.filter-btn[data-category="all"]').addEventListener('click', function() {
+            handleFilterClick('all');
         });
 
         // Bookmark functionality
@@ -1155,6 +1354,39 @@
             } catch (error) {
                 console.error('Error bookmarking:', error);
                 alert('Failed to bookmark. Please try again.');
+            }
+        }
+
+        // Load projects for save dropdown
+        async function loadProjectsForSave() {
+            const token = localStorage.getItem('authToken');
+            if (!token) return;
+
+            try {
+                const response = await fetch('/api/projects', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const projectDropdown = document.getElementById('projectDropdown');
+
+                    // Clear existing options except "No Project"
+                    projectDropdown.innerHTML = '<option value="">No Project</option>';
+
+                    // Add user's projects
+                    data.projects.forEach(project => {
+                        const option = document.createElement('option');
+                        option.value = project.id;
+                        option.textContent = project.name;
+                        projectDropdown.appendChild(option);
+                    });
+
+                    // Show the project selection section
+                    document.getElementById('projectSelectionSection').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading projects:', error);
             }
         }
 
@@ -1262,6 +1494,11 @@
             document.getElementById('generatedPrompt').textContent = finalPrompt;
             document.getElementById('promptModal').classList.add('active');
 
+            // Load projects for save dropdown if user is logged in
+            if (token) {
+                await loadProjectsForSave();
+            }
+
             // Reset copy button
             const copyBtn = document.getElementById('copyBtn');
             copyBtn.classList.remove('copied');
@@ -1365,6 +1602,10 @@
                 inputs[name] = input.value;
             });
 
+            // Get selected project
+            const projectDropdown = document.getElementById('projectDropdown');
+            const projectId = projectDropdown.value || null;
+
             try {
                 savePromptBtnText.textContent = 'Saving...';
 
@@ -1379,7 +1620,8 @@
                         templateName: templateName,
                         category: `${category} - ${subcategory}`,
                         promptText: generatedPromptText,
-                        inputs: inputs
+                        inputs: inputs,
+                        projectId: projectId
                     })
                 });
 

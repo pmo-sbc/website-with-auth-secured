@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - AI Prompt Templates</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/css/styles.css">
     <style>
         .admin-container {
@@ -269,13 +270,14 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="logo">
-                <div class="logo-circle">AI</div>
-                <span class="logo-text">AI Prompt Templates</span>
+                <div class="logo-circle">
+                    <img src="/images/logo.png" alt="SBC Services Logo">
+                </div>
             </a>
             <ul class="nav-menu">
                 <li><a href="/">Home</a></li>
-                <li><a href="/templates.html">Templates</a></li>
-                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/templates.html">Prompt Studio</a></li>
+                <li><a href="/dashboard">My Vault</a></li>
                 <li><a href="/admin/users" class="active">User Management</a></li>
                 <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
             </ul>
@@ -473,13 +475,43 @@
             }
         }
 
+        // Get CSRF token from cookie
+        function getCsrfToken() {
+            const name = 'XSRF-TOKEN=';
+            const decodedCookie = decodeURIComponent(document.cookie);
+            const cookieArray = decodedCookie.split(';');
+
+            for (let i = 0; i < cookieArray.length; i++) {
+                let cookie = cookieArray[i].trim();
+                if (cookie.indexOf(name) === 0) {
+                    return cookie.substring(name.length, cookie.length);
+                }
+            }
+            return null;
+        }
+
         // Logout
         async function logout() {
             try {
-                await fetchWithCsrf('/api/logout', { method: 'POST' });
-                window.location.href = '/login';
+                const csrfToken = getCsrfToken();
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    console.error('Logout failed:', response.status);
+                    // Redirect anyway
+                    window.location.href = '/login';
+                }
             } catch (error) {
                 console.error('Logout error:', error);
+                // Redirect anyway on error
+                window.location.href = '/login';
             }
         }
 

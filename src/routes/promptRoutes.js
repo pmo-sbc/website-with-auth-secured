@@ -27,7 +27,7 @@ router.post(
   validators.savePrompt,
   handleValidationErrors,
   asyncHandler(async (req, res) => {
-    const { templateName, category, promptText, inputs } = req.body;
+    const { templateName, category, promptText, inputs, projectId } = req.body;
     const userId = req.session.userId;
 
     const prompt = promptRepository.create(
@@ -35,13 +35,15 @@ router.post(
       templateName,
       category,
       promptText,
-      inputs
+      inputs,
+      projectId || null
     );
 
     logger.info('Prompt saved', {
       userId,
       promptId: prompt.id,
-      templateName
+      templateName,
+      projectId
     });
 
     res.json({
@@ -75,24 +77,35 @@ router.get(
 );
 
 /**
- * GET /api/prompts/:id
- * Get a specific prompt
+ * PATCH /api/prompts/:id
+ * Update a prompt (e.g., assign to project)
  */
-router.get(
+router.patch(
   '/:id',
+  csrfProtection,
   asyncHandler(async (req, res) => {
     const promptId = parseInt(req.params.id);
     const userId = req.session.userId;
+    const { project_id } = req.body;
 
-    const prompt = promptRepository.findById(promptId, userId);
+    const updated = promptRepository.updateProject(promptId, userId, project_id);
 
-    if (!prompt) {
+    if (!updated) {
       return res.status(404).json({
         error: 'Prompt not found'
       });
     }
 
-    res.json(prompt);
+    logger.info('Prompt updated', {
+      userId,
+      promptId,
+      projectId: project_id
+    });
+
+    res.json({
+      success: true,
+      message: 'Prompt updated successfully'
+    });
   })
 );
 
@@ -126,6 +139,28 @@ router.delete(
       success: true,
       message: 'Prompt deleted successfully'
     });
+  })
+);
+
+/**
+ * GET /api/prompts/:id
+ * Get a specific prompt
+ */
+router.get(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const promptId = parseInt(req.params.id);
+    const userId = req.session.userId;
+
+    const prompt = promptRepository.findById(promptId, userId);
+
+    if (!prompt) {
+      return res.status(404).json({
+        error: 'Prompt not found'
+      });
+    }
+
+    res.json(prompt);
   })
 );
 

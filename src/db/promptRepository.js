@@ -10,21 +10,22 @@ class PromptRepository {
   /**
    * Save a new prompt
    */
-  create(userId, templateName, category, promptText, inputs = {}) {
+  create(userId, templateName, category, promptText, inputs = {}, projectId = null) {
     const db = getDatabase();
     const query = `
-      INSERT INTO saved_prompts (user_id, template_name, category, prompt_text, inputs)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO saved_prompts (user_id, template_name, category, prompt_text, inputs, project_id)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
 
     try {
-      logger.db('INSERT', 'saved_prompts', { userId, templateName });
+      logger.db('INSERT', 'saved_prompts', { userId, templateName, projectId });
       const result = db.prepare(query).run(
         userId,
         templateName,
         category,
         promptText,
-        JSON.stringify(inputs)
+        JSON.stringify(inputs),
+        projectId
       );
 
       return {
@@ -33,7 +34,8 @@ class PromptRepository {
         templateName,
         category,
         promptText,
-        inputs
+        inputs,
+        projectId
       };
     } catch (error) {
       logger.error('Error saving prompt', error);
@@ -86,6 +88,23 @@ class PromptRepository {
       return prompt;
     } catch (error) {
       logger.error('Error finding prompt', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update prompt's project assignment
+   */
+  updateProject(promptId, userId, projectId) {
+    const db = getDatabase();
+    const query = 'UPDATE saved_prompts SET project_id = ? WHERE id = ? AND user_id = ?';
+
+    try {
+      logger.db('UPDATE', 'saved_prompts', { promptId, userId, projectId });
+      const result = db.prepare(query).run(projectId, promptId, userId);
+      return result.changes > 0;
+    } catch (error) {
+      logger.error('Error updating prompt project', error);
       throw error;
     }
   }

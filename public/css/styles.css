@@ -6,16 +6,18 @@
 }
 
 :root {
-    --primary-color: #e74c3c;
-    --secondary-color: #3498db;
-    --dark-bg: #2d2d3a;
-    --darker-bg: #1a1a24;
-    --card-bg: #3d3d4f;
-    --border-color: #4d4d5f;
+    --primary-color: #2c5aa0;
+    --secondary-color: #6ba3d8;
+    --dark-bg: #1a2855;
+    --darker-bg: #0f1829;
+    --card-bg: #243563;
+    --border-color: #3d5a8f;
     --text-primary: #ffffff;
-    --text-secondary: #b0b0c0;
+    --text-secondary: #a8bbd8;
     --success-color: #27ae60;
     --warning-color: #f39c12;
+    --accent-blue: #4a7fc7;
+    --light-blue: #8cb8e8;
 }
 
 body {
@@ -53,15 +55,14 @@ body {
 }
 
 .logo-circle {
-    width: 36px;
-    height: 36px;
-    background: var(--primary-color);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 16px;
+    width: 120px;
+    height: auto;
+}
+
+.logo-circle img {
+    width: 100%;
+    height: auto;
+    display: block;
 }
 
 .logo-text {

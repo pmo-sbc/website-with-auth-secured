@@ -39,7 +39,7 @@ const config = {
     rateLimit: {
       api: {
         windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100
+        max: 500 // Increased for dashboard with multiple simultaneous requests
       },
       auth: {
         windowMs: 15 * 60 * 1000, // 15 minutes
