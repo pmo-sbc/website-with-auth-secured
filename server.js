@@ -9,6 +9,8 @@ const SqliteStore = require('better-sqlite3-session-store')(session);
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./src/config/swagger');
 
 // Import configuration
 const config = require('./src/config');
@@ -38,6 +40,11 @@ const templateRoutes = require('./src/routes/templateRoutes');
 const userManagementRoutes = require('./src/routes/userManagementRoutes');
 const generatePromptRoutes = require('./src/routes/generatePromptRoutes');
 const projectRoutes = require('./src/routes/projectRoutes');
+const profileRoutes = require('./src/routes/profileRoutes');
+const adminTemplateRoutes = require('./src/routes/adminTemplateRoutes');
+const healthRoutes = require('./src/routes/healthRoutes');
+const activityLogRoutes = require('./src/routes/activityLogRoutes');
+const analyticsRoutes = require('./src/routes/analyticsRoutes');
 
 // Initialize Express app
 const app = express();
@@ -93,6 +100,9 @@ app.use('/api/', configureApiRateLimit());
 
 // ===== ROUTES =====
 
+// Health check routes (no auth required, should be first)
+app.use('/', healthRoutes);
+
 // Authentication routes (includes /login, /signup, /api/register, /api/login, /api/logout, /api/user)
 app.use('/', authRoutes);
 
@@ -105,6 +115,26 @@ app.use('/', userManagementRoutes);
 // Project routes
 app.use('/', projectRoutes);
 
+// Profile routes
+app.use('/', profileRoutes);
+
+// Admin template management routes
+app.use('/admin', adminTemplateRoutes);
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'AI Prompt Templates API',
+  customfavIcon: '/favicon.png'
+}));
+
+// Swagger JSON endpoint
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // API routes
 app.use('/api/prompts', promptRoutes);
 app.use('/api/usage', statsRoutes);
@@ -112,6 +142,8 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api', generatePromptRoutes);
 app.use('/api', projectRoutes);
+app.use('/api/activity', activityLogRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // ===== ERROR HANDLING =====
 

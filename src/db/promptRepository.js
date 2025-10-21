@@ -168,6 +168,79 @@ class PromptRepository {
       throw error;
     }
   }
+
+  /**
+   * Get prompts by project ID
+   */
+  findByProjectId(userId, projectId, limit = 100, offset = 0) {
+    const db = getDatabase();
+    const query = `
+      SELECT * FROM saved_prompts
+      WHERE user_id = ? AND project_id = ?
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    try {
+      logger.db('SELECT', 'saved_prompts', { userId, projectId, limit, offset });
+      const prompts = db.prepare(query).all(userId, projectId, limit, offset);
+
+      return prompts.map(prompt => ({
+        ...prompt,
+        inputs: JSON.parse(prompt.inputs)
+      }));
+    } catch (error) {
+      logger.error('Error retrieving prompts by project', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk update project assignment for multiple prompts
+   */
+  bulkUpdateProject(userId, promptIds, projectId) {
+    const db = getDatabase();
+
+    try {
+      logger.db('UPDATE', 'saved_prompts', { userId, count: promptIds.length, projectId });
+
+      const placeholders = promptIds.map(() => '?').join(',');
+      const query = `
+        UPDATE saved_prompts
+        SET project_id = ?
+        WHERE user_id = ? AND id IN (${placeholders})
+      `;
+
+      const result = db.prepare(query).run(projectId, userId, ...promptIds);
+      return result.changes;
+    } catch (error) {
+      logger.error('Error bulk updating prompt projects', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk delete multiple prompts
+   */
+  bulkDelete(userId, promptIds) {
+    const db = getDatabase();
+
+    try {
+      logger.db('DELETE', 'saved_prompts', { userId, count: promptIds.length });
+
+      const placeholders = promptIds.map(() => '?').join(',');
+      const query = `
+        DELETE FROM saved_prompts
+        WHERE user_id = ? AND id IN (${placeholders})
+      `;
+
+      const result = db.prepare(query).run(userId, ...promptIds);
+      return result.changes;
+    } catch (error) {
+      logger.error('Error bulk deleting prompts', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new PromptRepository();

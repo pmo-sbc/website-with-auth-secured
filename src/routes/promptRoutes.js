@@ -56,7 +56,7 @@ router.post(
 
 /**
  * GET /api/prompts
- * Get all prompts for current user
+ * Get all prompts for current user (with optional project filter)
  */
 router.get(
   '/',
@@ -64,11 +64,18 @@ router.get(
     const userId = req.session.userId;
     const limit = parseInt(req.query.limit) || 100;
     const offset = parseInt(req.query.offset) || 0;
+    const projectId = req.query.projectId ? parseInt(req.query.projectId) : null;
 
-    const prompts = promptRepository.findByUserId(userId, limit, offset);
+    let prompts;
+    if (projectId) {
+      prompts = promptRepository.findByProjectId(userId, projectId, limit, offset);
+    } else {
+      prompts = promptRepository.findByUserId(userId, limit, offset);
+    }
 
     logger.debug('Prompts retrieved', {
       userId,
+      projectId,
       count: prompts.length
     });
 
@@ -181,6 +188,75 @@ router.post(
     res.json({
       results: prompts,
       count: prompts.length
+    });
+  })
+);
+
+/**
+ * POST /api/prompts/bulk-assign
+ * Assign multiple prompts to a project
+ */
+router.post(
+  '/bulk-assign',
+  csrfProtection,
+  validators.bulkAssignPrompts,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const { promptIds, projectId } = req.body;
+
+    if (!Array.isArray(promptIds) || promptIds.length === 0) {
+      return res.status(400).json({
+        error: 'promptIds must be a non-empty array'
+      });
+    }
+
+    const updated = promptRepository.bulkUpdateProject(userId, promptIds, projectId);
+
+    logger.info('Bulk prompt assignment', {
+      userId,
+      count: updated,
+      projectId
+    });
+
+    res.json({
+      success: true,
+      updated,
+      message: `${updated} prompt(s) assigned to project`
+    });
+  })
+);
+
+/**
+ * POST /api/prompts/bulk-delete
+ * Delete multiple prompts
+ */
+router.post(
+  '/bulk-delete',
+  csrfProtection,
+  validators.bulkDeletePrompts,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const { promptIds } = req.body;
+
+    if (!Array.isArray(promptIds) || promptIds.length === 0) {
+      return res.status(400).json({
+        error: 'promptIds must be a non-empty array'
+      });
+    }
+
+    const deleted = promptRepository.bulkDelete(userId, promptIds);
+
+    logger.info('Bulk prompt deletion', {
+      userId,
+      count: deleted
+    });
+
+    res.json({
+      success: true,
+      deleted,
+      message: `${deleted} prompt(s) deleted`
     });
   })
 );

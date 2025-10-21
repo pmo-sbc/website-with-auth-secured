@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - AI Prompt Templates</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/csrf-helper.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f1829 0%, #1a2855 100%);
+            color: #e4e4e7;
+            min-height: 100vh;
+        }
+
+        .profile-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .profile-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .profile-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #6ba3d8 0%, #2c5aa0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .profile-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+        }
+
+        .profile-card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-verified {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+
+        .status-unverified {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn-profile {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .btn-primary-profile {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary-profile:hover {
+            background: #2980b9;
+        }
+
+        .btn-danger {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-profile:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .danger-zone {
+            background: rgba(231, 76, 60, 0.05);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+
+        .danger-zone h2 {
+            color: var(--primary-color);
+        }
+
+        .warning-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(231, 76, 60, 0.1);
+            border-radius: 6px;
+        }
+
+        .success-message,
+        .error-message {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .success-message.show,
+        .error-message.show {
+            display: block;
+        }
+
+        .password-requirements {
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px solid #3498db;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            color: #3498db;
+            font-size: 0.9rem;
+        }
+
+        .password-requirements ul {
+            margin: 0.5rem 0 0 0;
+            padding-left: 1.5rem;
+        }
+
+        .password-requirements li {
+            margin: 0.25rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-circle">
+                    <img src="images/logo.png" alt="SBC Services Logo">
+                </div>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/templates.html">Prompt Studio</a></li>
+                <li><a href="/dashboard">My Vault</a></li>
+                <li><a href="/projects">Projects</a></li>
+                <li><a href="/profile" class="active">Profile</a></li>
+                <li id="adminMenuLink" style="display: none;"><a href="/admin/users">User Management</a></li>
+                <li style="color: #a1a1aa; display: flex; align-items: center; padding: 0 1rem;">
+                    Welcome, <span id="usernameNav"></span> | 🪙 <span id="tokensNav">...</span> tokens
+                </li>
+                <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+        <div class="profile-header">
+            <h1>My Profile</h1>
+            <p style="color: var(--text-secondary);">Manage your account settings</p>
+        </div>
+
+        <!-- Account Information -->
+        <div class="profile-card">
+            <h2>👤 Account Information</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Username</span>
+                    <span class="info-value" id="profileUsername">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email</span>
+                    <span class="info-value" id="profileEmail">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email Status</span>
+                    <span class="status-badge" id="emailStatus">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Token Balance</span>
+                    <span class="info-value">🪙 <span id="profileTokens">0</span> tokens</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Member Since</span>
+                    <span class="info-value" id="memberSince">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="profile-card">
+            <h2>🔒 Change Password</h2>
+
+            <div class="success-message" id="passwordSuccess"></div>
+            <div class="error-message" id="passwordError"></div>
+
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label class="form-label" for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" class="form-input" required minlength="8">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" class="form-input" required minlength="8">
+                </div>
+
+                <div class="password-requirements">
+                    <strong>Password Requirements:</strong>
+                    <ul>
+                        <li>At least 8 characters long</li>
+                        <li>Mix of uppercase and lowercase letters recommended</li>
+                        <li>Include numbers for better security</li>
+                    </ul>
+                </div>
+
+                <button type="submit" class="btn-profile btn-primary-profile" id="changePasswordBtn" style="margin-top: 1.5rem;">
+                    Change Password
+                </button>
+            </form>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="profile-card danger-zone">
+            <h2>⚠️ Danger Zone</h2>
+
+            <div class="error-message" id="deleteError"></div>
+
+            <p class="warning-text">
+                <strong>Warning:</strong> Deleting your account is permanent and cannot be undone.
+                All your saved prompts, projects, and data will be permanently deleted.
+            </p>
+
+            <form id="deleteAccountForm">
+                <div class="form-group">
+                    <label class="form-label" for="deletePassword">Enter your password to confirm deletion</label>
+                    <input type="password" id="deletePassword" class="form-input" required placeholder="Your password">
+                </div>
+
+                <button type="submit" class="btn-profile btn-danger" id="deleteAccountBtn">
+                    Delete My Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Load user profile data
+        async function loadProfileData() {
+            try {
+                const response = await fetch('/api/profile/activity', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('Failed to load profile');
+                }
+
+                const data = await response.json();
+                const user = data.user;
+
+                // Update profile information
+                document.getElementById('profileUsername').textContent = user.username;
+                document.getElementById('profileEmail').textContent = user.email;
+                document.getElementById('profileTokens').textContent = user.tokens || 0;
+                document.getElementById('usernameNav').textContent = user.username;
+                document.getElementById('tokensNav').textContent = user.tokens || 0;
+                document.getElementById('memberSince').textContent = new Date(user.created_at).toLocaleDateString();
+
+                // Email status
+                const emailStatus = document.getElementById('emailStatus');
+                if (user.email_verified) {
+                    emailStatus.textContent = 'Verified ✓';
+                    emailStatus.className = 'status-badge status-verified';
+                } else {
+                    emailStatus.textContent = 'Not Verified';
+                    emailStatus.className = 'status-badge status-unverified';
+                }
+
+                // Show admin link if admin
+                if (user.is_admin) {
+                    document.getElementById('adminMenuLink').style.display = 'list-item';
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showError('passwordError', 'Failed to load profile data');
+            }
+        }
+
+        // Change password form
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Clear previous messages
+            hideMessages();
+
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                showError('passwordError', 'New passwords do not match');
+                return;
+            }
+
+            // Validate password length
+            if (newPassword.length < 8) {
+                showError('passwordError', 'Password must be at least 8 characters long');
+                return;
+            }
+
+            const btn = document.getElementById('changePasswordBtn');
+            btn.disabled = true;
+            btn.textContent = 'Changing...';
+
+            try {
+                const response = await fetchWithCsrf('/api/profile/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        currentPassword,
+                        newPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess('passwordSuccess', 'Password changed successfully!');
+                    document.getElementById('changePasswordForm').reset();
+                } else {
+                    showError('passwordError', data.error || 'Failed to change password');
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showError('passwordError', 'Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Change Password';
+            }
+        });
+
+        // Delete account form
+        document.getElementById('deleteAccountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const confirmed = confirm(
+                'Are you absolutely sure you want to delete your account?\n\n' +
+                'This action CANNOT be undone. All your data will be permanently deleted.\n\n' +
+                'Click OK to proceed with account deletion.'
+            );
+
+            if (!confirmed) return;
+
+            const password = document.getElementById('deletePassword').value;
+
+            hideMessages();
+
+            const btn = document.getElementById('deleteAccountBtn');
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+
+            try {
+                const response = await fetchWithCsrf('/api/profile/delete-account', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Account deleted successfully. You will be redirected to the home page.');
+                    window.location.href = '/';
+                } else {
+                    showError('deleteError', data.error || 'Failed to delete account');
+                    btn.disabled = false;
+                    btn.textContent = 'Delete My Account';
+                }
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                showError('deleteError', 'Network error. Please try again.');
+                btn.disabled = false;
+                btn.textContent = 'Delete My Account';
+            }
+        });
+
+        // Utility functions
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.add('show');
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.add('show');
+        }
+
+        function hideMessages() {
+            document.querySelectorAll('.success-message, .error-message').forEach(el => {
+                el.classList.remove('show');
+            });
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await fetchWithCsrf('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/login';
+            }
+        });
+
+        // Initialize
+        loadProfileData();
+    </script>
+</body>
+</html>

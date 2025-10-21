@@ -80,6 +80,31 @@ function sendCsrfToken(req, res, next) {
 }
 
 /**
+ * Email Rate Limiter (very strict to prevent abuse)
+ * 3 requests per 15 minutes per IP
+ */
+function configureEmailRateLimit() {
+  return rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 3, // 3 requests per window
+    skipSuccessfulRequests: false,
+    message: 'Too many email requests from this IP, please try again after 15 minutes.',
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+      logger.security('Email rate limit exceeded', {
+        ip: req.ip,
+        url: req.originalUrl
+      });
+      res.status(429).json({
+        error: 'Too many email requests',
+        message: 'Please try again after 15 minutes. If you need assistance, contact support.'
+      });
+    }
+  });
+}
+
+/**
  * Security headers middleware
  */
 function securityHeaders(req, res, next) {
@@ -96,6 +121,7 @@ module.exports = {
   configureHelmet,
   configureApiRateLimit,
   configureAuthRateLimit,
+  configureEmailRateLimit,
   configureCsrf,
   sendCsrfToken,
   securityHeaders

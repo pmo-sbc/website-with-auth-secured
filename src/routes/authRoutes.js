@@ -10,14 +10,16 @@ const emailService = require('../services/emailService');
 const validators = require('../validators');
 const { handleValidationErrors } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { configureAuthRateLimit, configureCsrf, sendCsrfToken } = require('../middleware/security');
+const { configureAuthRateLimit, configureEmailRateLimit, configureCsrf, sendCsrfToken } = require('../middleware/security');
 const { redirectIfAuthenticated } = require('../middleware/auth');
 const config = require('../config');
 const logger = require('../utils/logger');
 const path = require('path');
+const { logManualActivity, ActivityTypes } = require('../middleware/activityLogger');
 
 const router = express.Router();
 const authLimiter = configureAuthRateLimit();
+const emailLimiter = configureEmailRateLimit();
 const csrfProtection = configureCsrf();
 
 /**
@@ -88,6 +90,9 @@ router.post(
       userId: newUser.id,
       username: newUser.username
     });
+
+    // Log registration activity
+    logManualActivity(req, ActivityTypes.USER_REGISTER, 'user', newUser.id, { username, email });
 
     // Do NOT create session until email is verified
     res.json({
@@ -164,6 +169,9 @@ router.post(
       rememberMe: !!rememberMe
     });
 
+    // Log login activity
+    logManualActivity(req, ActivityTypes.USER_LOGIN, 'user', user.id, { username: user.username, rememberMe: !!rememberMe });
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -178,6 +186,11 @@ router.post(
  */
 router.post('/api/logout', csrfProtection, (req, res) => {
   const userId = req.session.userId;
+
+  // Log logout before destroying session
+  if (userId) {
+    logManualActivity(req, ActivityTypes.USER_LOGOUT, 'user', userId);
+  }
 
   req.session.destroy((err) => {
     if (err) {
@@ -264,6 +277,8 @@ router.get('/verify-email', (req, res) => {
 router.post(
   '/api/verify-email',
   authLimiter,
+  validators.emailToken,
+  handleValidationErrors,
   asyncHandler(async (req, res) => {
     const { token } = req.body;
 
@@ -323,7 +338,7 @@ router.post(
  */
 router.post(
   '/api/resend-verification',
-  authLimiter,
+  emailLimiter,
   asyncHandler(async (req, res) => {
     const { email } = req.body;
 
@@ -378,6 +393,157 @@ router.post(
     res.json({
       success: true,
       message: 'Verification email sent! Please check your inbox.'
+    });
+  })
+);
+
+/**
+ * GET /forgot-password
+ * Serve forgot password page
+ */
+router.get('/forgot-password', csrfProtection, sendCsrfToken, redirectIfAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public', 'forgot-password.html'));
+});
+
+/**
+ * POST /api/forgot-password
+ * Request password reset
+ */
+router.post(
+  '/api/forgot-password',
+  emailLimiter,
+  csrfProtection,
+  validators.forgotPassword,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: 'Email is required'
+      });
+    }
+
+    // Find user by email
+    const user = userRepository.findByEmail(email);
+
+    if (!user) {
+      // Don't reveal if user exists - security best practice
+      logger.warn('Password reset attempt for non-existent email', { email });
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      });
+    }
+
+    // Check if email is verified
+    if (!user.email_verified) {
+      logger.warn('Password reset attempt for unverified email', { email, userId: user.id });
+      return res.status(403).json({
+        error: 'Email not verified',
+        message: 'Please verify your email before resetting your password.'
+      });
+    }
+
+    // Generate password reset token (1 hour expiry)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Save reset token
+    userRepository.setPasswordResetToken(user.id, resetToken, expiresAt.toISOString());
+
+    // Send password reset email
+    try {
+      await emailService.sendPasswordResetEmail(user.email, user.username, resetToken);
+      logger.info('Password reset email sent', {
+        userId: user.id,
+        email: user.email
+      });
+    } catch (error) {
+      logger.error('Failed to send password reset email', error);
+      return res.status(500).json({
+        error: 'Failed to send email',
+        message: 'An error occurred while sending the password reset email. Please try again later.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'If an account exists with this email, a password reset link has been sent.'
+    });
+  })
+);
+
+/**
+ * GET /reset-password
+ * Serve reset password page
+ */
+router.get('/reset-password', csrfProtection, sendCsrfToken, redirectIfAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public', 'reset-password.html'));
+});
+
+/**
+ * POST /api/reset-password
+ * Reset password with token
+ */
+router.post(
+  '/api/reset-password',
+  authLimiter,
+  csrfProtection,
+  validators.resetPassword,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        error: 'Token and password are required'
+      });
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters long'
+      });
+    }
+
+    // Find user by reset token
+    const user = userRepository.findByPasswordResetToken(token);
+
+    if (!user) {
+      logger.warn('Invalid or expired password reset token', { token });
+      return res.status(400).json({
+        error: 'Invalid or expired reset link',
+        message: 'This password reset link is invalid or has expired. Please request a new one.'
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(password, config.security.bcryptRounds);
+
+    // Update password
+    const updated = userRepository.updatePassword(user.id, hashedPassword);
+
+    if (!updated) {
+      logger.error('Failed to update password', { userId: user.id });
+      return res.status(500).json({
+        error: 'Failed to reset password',
+        message: 'An error occurred while resetting your password. Please try again.'
+      });
+    }
+
+    // Clear reset token
+    userRepository.clearPasswordResetToken(user.id);
+
+    logger.info('Password reset successfully', {
+      userId: user.id,
+      email: user.email
+    });
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! You can now log in with your new password.'
     });
   })
 );

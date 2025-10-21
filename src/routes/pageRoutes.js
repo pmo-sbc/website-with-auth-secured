@@ -45,4 +45,12 @@ router.get('/about', (req, res) => {
   res.sendFile(path.join(__dirname, '../../public', 'about.html'));
 });
 
+/**
+ * GET /admin-analytics
+ * Admin analytics dashboard (protected)
+ */
+router.get('/admin-analytics', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public', 'admin-analytics.html'));
+});
+
 module.exports = router;

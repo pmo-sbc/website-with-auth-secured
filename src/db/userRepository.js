@@ -112,6 +112,23 @@ class UserRepository {
   }
 
   /**
+   * Update user email
+   */
+  updateEmail(userId, email) {
+    const db = getDatabase();
+    const query = 'UPDATE users SET email = ?, email_verified = 0 WHERE id = ?';
+
+    try {
+      logger.db('UPDATE', 'users', { userId, email, action: 'update_email' });
+      const result = db.prepare(query).run(email, userId);
+      return result.changes > 0;
+    } catch (error) {
+      logger.error('Error updating email', error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete user
    */
   delete(userId) {
@@ -250,6 +267,81 @@ class UserRepository {
       return result.changes > 0;
     } catch (error) {
       logger.error('Error adding tokens', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set password reset token
+   */
+  setPasswordResetToken(userId, token, expiresAt) {
+    const db = getDatabase();
+    const query = 'UPDATE users SET password_reset_token = ?, password_reset_token_expires = ? WHERE id = ?';
+
+    try {
+      logger.db('UPDATE', 'users', { userId, action: 'set_password_reset_token' });
+      const result = db.prepare(query).run(token, expiresAt, userId);
+      return result.changes > 0;
+    } catch (error) {
+      logger.error('Error setting password reset token', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by password reset token
+   */
+  findByPasswordResetToken(token) {
+    const db = getDatabase();
+    const query = `
+      SELECT * FROM users
+      WHERE password_reset_token = ?
+      AND password_reset_token_expires > datetime('now')
+    `;
+
+    try {
+      logger.db('SELECT', 'users', { action: 'find_by_password_reset_token' });
+      return db.prepare(query).get(token);
+    } catch (error) {
+      logger.error('Error finding user by password reset token', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear password reset token
+   */
+  clearPasswordResetToken(userId) {
+    const db = getDatabase();
+    const query = `
+      UPDATE users
+      SET password_reset_token = NULL,
+          password_reset_token_expires = NULL
+      WHERE id = ?
+    `;
+
+    try {
+      logger.db('UPDATE', 'users', { userId, action: 'clear_password_reset_token' });
+      const result = db.prepare(query).run(userId);
+      return result.changes > 0;
+    } catch (error) {
+      logger.error('Error clearing password reset token', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by email (for password reset)
+   */
+  findByEmail(email) {
+    const db = getDatabase();
+    const query = 'SELECT * FROM users WHERE email = ?';
+
+    try {
+      logger.db('SELECT', 'users', { email, action: 'find_by_email' });
+      return db.prepare(query).get(email);
+    } catch (error) {
+      logger.error('Error finding user by email', error);
       throw error;
     }
   }
