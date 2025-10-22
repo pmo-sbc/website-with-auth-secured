@@ -8,13 +8,13 @@ const logger = require('../utils/logger');
 
 class Template {
   /**
-   * Get all active templates (Marketing only)
+   * Get all active templates
    */
   static getAll(includeInactive = false) {
     const db = getDatabase();
     const query = includeInactive
-      ? 'SELECT * FROM templates WHERE category = \'Marketing\' ORDER BY category, subcategory, name'
-      : 'SELECT * FROM templates WHERE is_active = 1 AND category = \'Marketing\' ORDER BY category, subcategory, name';
+      ? 'SELECT * FROM templates ORDER BY category, subcategory, name'
+      : 'SELECT * FROM templates WHERE is_active = 1 ORDER BY category, subcategory, name';
 
     const templates = db.prepare(query).all();
 
@@ -79,13 +79,13 @@ class Template {
   }
 
   /**
-   * Search templates by name or description (Marketing only)
+   * Search templates by name or description
    */
   static search(searchTerm) {
     const db = getDatabase();
     const templates = db.prepare(
       `SELECT * FROM templates
-       WHERE (name LIKE ? OR description LIKE ?) AND is_active = 1 AND category = "Marketing"
+       WHERE (name LIKE ? OR description LIKE ?) AND is_active = 1
        ORDER BY category, subcategory, name`
     ).all(`%${searchTerm}%`, `%${searchTerm}%`);
 
@@ -156,12 +156,12 @@ class Template {
   }
 
   /**
-   * Get all categories (Marketing only)
+   * Get all categories
    */
   static getCategories() {
     const db = getDatabase();
     const categories = db.prepare(
-      'SELECT DISTINCT category FROM templates WHERE is_active = 1 AND category = "Marketing" ORDER BY category'
+      'SELECT DISTINCT category FROM templates WHERE is_active = 1 ORDER BY category'
     ).all();
     return categories.map(row => row.category);
   }
