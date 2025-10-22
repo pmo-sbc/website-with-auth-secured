@@ -9,6 +9,11 @@
     <script src="js/csrf-helper.js"></script>
     <script src="js/session-manager.js"></script>
     <style>
+        /* Override navbar to use dark background */
+        .navbar {
+            background: #000B14 !important;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -17,8 +22,8 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #e4e4e7;
+            background: #ffffff;
+            color: #2c3e50;
             min-height: 100vh;
         }
 
@@ -45,7 +50,7 @@
         }
 
         .studio-tagline {
-            color: #a1a1aa;
+            color: #6c757d;
             font-size: 1.1rem;
             font-weight: 300;
         }
@@ -66,17 +71,17 @@
             left: 1rem;
             top: 50%;
             transform: translateY(-50%);
-            color: #71717a;
+            color: #6c757d;
             font-size: 1.2rem;
         }
 
         .search-input {
             width: 100%;
             padding: 1rem 1rem 1rem 3rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
             border-radius: 50px;
-            color: #e4e4e7;
+            color: #2c3e50;
             font-size: 1rem;
             transition: all 0.3s ease;
         }
@@ -84,12 +89,12 @@
         .search-input:focus {
             outline: none;
             border-color: #667eea;
-            background: rgba(255, 255, 255, 0.08);
+            background: #ffffff;
             box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         }
 
         .search-input::placeholder {
-            color: #71717a;
+            color: #6c757d;
         }
 
         .clear-search-btn {
@@ -113,8 +118,8 @@
         }
 
         .clear-search-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #e4e4e7;
+            background: #f8f9fa;
+            color: #2c3e50;
         }
 
         .search-info {
@@ -124,7 +129,7 @@
             background: rgba(102, 126, 234, 0.1);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 8px;
-            color: #d4d4d8;
+            color: #2c3e50;
             font-size: 0.925rem;
         }
 
@@ -137,7 +142,7 @@
         .filter-header {
             font-size: 0.875rem;
             font-weight: 600;
-            color: #a1a1aa;
+            color: #6c757d;
             margin-bottom: 1rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
@@ -152,10 +157,10 @@
 
         .filter-btn {
             padding: 0.6rem 1.25rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 20px;
-            color: #d4d4d8;
+            color: #2c3e50;
             font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
@@ -163,9 +168,9 @@
         }
 
         .filter-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: #f8f9fa;
             border-color: rgba(102, 126, 234, 0.5);
-            color: #e4e4e7;
+            color: #2c3e50;
         }
 
         .filter-btn.active {
@@ -185,12 +190,12 @@
 
         /* Left Panel - Blueprint Selector */
         .blueprint-panel {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 16px;
             padding: 1.5rem;
             height: fit-content;
-            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .panel-header {
@@ -198,7 +203,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: #a1a1aa;
+            color: #6c757d;
             margin-bottom: 1rem;
         }
 
@@ -210,25 +215,25 @@
             display: block;
             font-size: 0.875rem;
             font-weight: 500;
-            color: #d4d4d8;
+            color: #2c3e50;
             margin-bottom: 0.5rem;
         }
 
         .selector-dropdown {
             width: 100%;
             padding: 0.75rem 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            color: #e4e4e7;
+            color: #2c3e50;
             font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .selector-dropdown:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.25);
+            background: #f8f9fa;
+            border-color: #c0c0c0;
         }
 
         .selector-dropdown:focus {
@@ -238,8 +243,8 @@
         }
 
         .selector-dropdown option {
-            background: #1a1a2e;
-            color: #e4e4e7;
+            background: #ffffff;
+            color: #2c3e50;
         }
 
         .elite-badge {
@@ -256,11 +261,11 @@
 
         /* Right Panel - Composer */
         .composer-panel {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 16px;
             padding: 2rem;
-            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .blueprint-info {
@@ -270,7 +275,7 @@
             padding: 1rem 1.25rem;
             margin-bottom: 2rem;
             font-size: 0.925rem;
-            color: #d4d4d8;
+            color: #2c3e50;
             font-style: italic;
             line-height: 1.6;
         }
@@ -282,7 +287,7 @@
         .section-title {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #e4e4e7;
+            color: #2c3e50;
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
@@ -309,7 +314,7 @@
             display: block;
             font-size: 0.875rem;
             font-weight: 500;
-            color: #d4d4d8;
+            color: #2c3e50;
             margin-bottom: 0.5rem;
         }
 
@@ -317,10 +322,10 @@
         .field-textarea {
             width: 100%;
             padding: 0.875rem 1rem;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            color: #e4e4e7;
+            color: #2c3e50;
             font-size: 0.95rem;
             font-family: inherit;
             transition: all 0.2s ease;
@@ -337,26 +342,26 @@
         .field-textarea:focus {
             outline: none;
             border-color: #667eea;
-            background: rgba(0, 0, 0, 0.3);
+            background: #ffffff;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .field-input::placeholder,
         .field-textarea::placeholder {
-            color: #71717a;
+            color: #6c757d;
         }
 
         /* Output Preview Section */
         .output-preview {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 12px;
             padding: 1.5rem;
             min-height: 200px;
             font-family: 'Monaco', 'Courier New', monospace;
             font-size: 0.875rem;
             line-height: 1.7;
-            color: #d4d4d8;
+            color: #000000 !important;
             white-space: pre-wrap;
             word-wrap: break-word;
         }
@@ -438,15 +443,15 @@
         }
 
         .result-container {
-            background: #1a1a2e;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 20px;
             padding: 2.5rem;
             max-width: 900px;
             width: 100%;
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
         }
 
         .result-header {
@@ -455,7 +460,7 @@
             align-items: center;
             margin-bottom: 2rem;
             padding-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid #e0e0e0;
         }
 
         .result-title {
@@ -483,13 +488,13 @@
         }
 
         .close-modal:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #e4e4e7;
+            background: #f3f4f6;
+            color: #000000;
         }
 
         .generated-output {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
             border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 2rem;
@@ -500,7 +505,7 @@
             word-wrap: break-word;
             max-height: 400px;
             overflow-y: auto;
-            color: #e4e4e7;
+            color: #000000 !important;
         }
 
         /* AI Platform Buttons */
@@ -540,29 +545,19 @@
             color: white;
         }
 
-        .platform-gemini {
-            background: #4285f4;
-            color: white;
-        }
-
-        .platform-copilot {
-            background: #0078d4;
-            color: white;
-        }
-
         .platform-perplexity {
             background: #20808d;
             color: white;
         }
 
         .platform-copy {
-            background: rgba(113, 113, 122, 0.3);
-            color: #e4e4e7;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #4b5563;
+            color: #ffffff;
+            border: 1px solid #374151;
         }
 
         .platform-copy:hover {
-            background: rgba(113, 113, 122, 0.5);
+            background: #374151;
         }
 
         .platform-copy.copied {
@@ -696,7 +691,7 @@
         <div class="nav-container">
             <a href="index.html" class="logo">
                 <div class="logo-circle">
-                    <img src="images/logo.png" alt="SBC Services Logo">
+                    <img src="images/3rd-logo.jpeg" alt="SBC Services Logo">
                 </div>
             </a>
             <ul class="nav-menu" id="navMenu">
@@ -871,7 +866,7 @@
 
             <!-- Project Selection for Save (only shown for logged-in users) -->
             <div id="projectSelectionSection" style="display: none; margin-bottom: 1.5rem;">
-                <label class="field-label" style="color: #d4d4d8; margin-bottom: 0.5rem; display: block;">
+                <label class="field-label" style="color: #374151; margin-bottom: 0.5rem; display: block;">
                     📁 Save to Project (Optional)
                 </label>
                 <select id="projectDropdown" class="selector-dropdown">
@@ -887,14 +882,6 @@
                 <button class="platform-btn platform-claude" data-ai="claude">
                     <span>🧠</span>
                     <span>Claude</span>
-                </button>
-                <button class="platform-btn platform-gemini" data-ai="gemini">
-                    <span>✨</span>
-                    <span>Gemini</span>
-                </button>
-                <button class="platform-btn platform-copilot" data-ai="copilot">
-                    <span>💡</span>
-                    <span>Copilot</span>
                 </button>
                 <button class="platform-btn platform-perplexity" data-ai="perplexity">
                     <span>🔍</span>
@@ -928,6 +915,9 @@
             const token = localStorage.getItem('authToken');
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             const navMenu = document.getElementById('navMenu');
+
+            // Debug logging
+            console.log('Auth check:', { hasToken: !!token, user: user, username: user.username });
 
             if (token && user.name) {
                 // User is logged in - show full menu with username and tokens
@@ -979,7 +969,17 @@
         async function loadTemplates() {
             try {
                 const response = await fetch('/api/templates');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 allTemplates = await response.json();
+                console.log('Loaded templates:', allTemplates);
+
+                if (!allTemplates || typeof allTemplates !== 'object') {
+                    throw new Error('Invalid template data received');
+                }
 
                 for (const [category, subcategories] of Object.entries(allTemplates)) {
                     for (const [subcategory, templateList] of Object.entries(subcategories)) {
@@ -1002,6 +1002,8 @@
                 populateFilterButtons();
             } catch (error) {
                 console.error('Error loading templates:', error);
+                const categorySelect = document.getElementById('category');
+                categorySelect.innerHTML = '<option value="">Error loading domains</option>';
                 alert('Failed to load blueprints. Please refresh the page.');
             }
         }
@@ -1059,6 +1061,12 @@
 
             categorySelect.innerHTML = '';
             subcategorySelect.innerHTML = '<option value="">Choose a specialty...</option>';
+
+            if (!allTemplates || Object.keys(allTemplates).length === 0) {
+                categorySelect.innerHTML = '<option value="">No domains available</option>';
+                console.error('No templates loaded');
+                return;
+            }
 
             Object.keys(allTemplates).forEach(category => {
                 const option = document.createElement('option');
@@ -1412,6 +1420,24 @@
                 return;
             }
 
+            // Validate that all input fields are filled
+            const inputs = dynamicInputsDiv.querySelectorAll('input, textarea');
+            let hasEmptyFields = false;
+            let emptyFieldLabels = [];
+
+            inputs.forEach(input => {
+                const value = input.value.trim();
+                if (!value) {
+                    hasEmptyFields = true;
+                    emptyFieldLabels.push(input.placeholder || 'Unknown field');
+                }
+            });
+
+            if (hasEmptyFields) {
+                alert(`⚠️ Please fill in all blueprint parameters:\n\n${emptyFieldLabels.join('\n')}`);
+                return;
+            }
+
             // Check if user is logged in for token deduction
             const token = localStorage.getItem('authToken');
             if (token) {
@@ -1462,10 +1488,10 @@
 
             let finalPrompt = template.prompt;
 
-            // Replace placeholders
-            const inputs = dynamicInputsDiv.querySelectorAll('input, textarea');
+            // Replace placeholders (all fields are validated to be filled at this point)
+            // Reuse the inputs already queried above for validation
             inputs.forEach(input => {
-                const value = input.value.trim() || `[${input.placeholder}]`;
+                const value = input.value.trim();
                 finalPrompt = finalPrompt.replace('""', `"${value}"`);
             });
 
@@ -1654,12 +1680,6 @@
                 case 'claude':
                     url = `https://claude.ai/new?q=${encodedPrompt}`;
                     break;
-                case 'gemini':
-                    url = `https://gemini.google.com/app?q=${encodedPrompt}`;
-                    break;
-                case 'copilot':
-                    url = `https://copilot.microsoft.com/?q=${encodedPrompt}`;
-                    break;
                 case 'perplexity':
                     url = `https://www.perplexity.ai/?q=${encodedPrompt}`;
                     break;
@@ -1698,7 +1718,14 @@
         });
 
         // Load templates on page load
-        loadTemplates();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                loadTemplates();
+            });
+        } else {
+            // DOM already loaded
+            loadTemplates();
+        }
     </script>
 </body>
 </html>

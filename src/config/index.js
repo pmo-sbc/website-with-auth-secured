@@ -84,6 +84,14 @@ const config = {
     promptText: {
       maxLength: 10000
     }
+  },
+
+  // reCAPTCHA Configuration
+  recaptcha: {
+    siteKey: process.env.RECAPTCHA_SITE_KEY || '',
+    secretKey: process.env.RECAPTCHA_SECRET_KEY || '',
+    enabled: process.env.RECAPTCHA_ENABLED === 'true' || false,
+    verifyUrl: 'https://www.google.com/recaptcha/api/siteverify'
   }
 };
 

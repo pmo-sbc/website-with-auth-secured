@@ -45,6 +45,7 @@ router.get('/signup', csrfProtection, sendCsrfToken, redirectIfAuthenticated, (r
 router.post(
   '/api/register',
   authLimiter,
+  emailLimiter,
   csrfProtection,
   validators.register,
   handleValidationErrors,

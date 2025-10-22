@@ -17,6 +17,7 @@ const logger = require('../utils/logger');
 router.get('/', (req, res) => {
   try {
     const structured = Template.getStructured();
+    logger.debug('Returning templates:', { count: Object.keys(structured).length, categories: Object.keys(structured) });
     res.json(structured);
   } catch (error) {
     logger.error('Error fetching templates:', error);

@@ -122,7 +122,9 @@ const templateData = {
         prompt: 'Please ignore all previous instructions. I want you to respond only in the english language. Do not repeat yourself. Do not self reference. Do not explain what you are doing.\n\nYou are an influencer outreach coordinator. Please write a personalized outreach email to "" to invite them to collaborate on a "". Include a short brand intro, campaign details, expected deliverables, and a friendly call to action.'
       }
     }
-  },
+  }
+  /* DISABLED CATEGORIES - Only Marketing is active
+  ,
   "Development": {
     "Code Generation": {
       "Function Generator": {
@@ -348,6 +350,7 @@ const templateData = {
       }
     }
   }
+  END OF DISABLED CATEGORIES */
 };
 
 /**
