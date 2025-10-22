@@ -30,7 +30,7 @@ class UserRepository {
    */
   findById(userId) {
     const db = getDatabase();
-    const query = 'SELECT id, username, email, is_admin, tokens, created_at FROM users WHERE id = ?';
+    const query = 'SELECT id, username, email, email_verified, is_admin, tokens, created_at FROM users WHERE id = ?';
 
     try {
       logger.db('SELECT', 'users', { userId });

@@ -50,6 +50,7 @@
             font-weight: 600;
             color: var(--text-primary);
             border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
         }
 
         .users-table td {
@@ -147,20 +148,66 @@
             color: var(--primary-color);
         }
 
-        .btn-add-tokens {
-            padding: 0.5rem 1rem;
+        .btn-action {
+            padding: 0.4rem 0.8rem;
             border-radius: 4px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             cursor: pointer;
-            border: 1px solid #27ae60;
+            border: 1px solid;
             background: transparent;
-            color: #27ae60;
             transition: all 0.3s;
-            margin-right: 0.5rem;
+            margin-right: 0.3rem;
+            margin-bottom: 0.3rem;
+            display: inline-block;
+        }
+
+        .btn-add-tokens {
+            border-color: #27ae60;
+            color: #27ae60;
         }
 
         .btn-add-tokens:hover {
             background: #27ae60;
+            color: white;
+        }
+
+        .btn-admin {
+            border-color: #9b59b6;
+            color: #9b59b6;
+        }
+
+        .btn-admin:hover {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-verify {
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .btn-verify:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-reset-pw {
+            border-color: #f39c12;
+            color: #f39c12;
+        }
+
+        .btn-reset-pw:hover {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-view-ips {
+            border-color: #16a085;
+            color: #16a085;
+        }
+
+        .btn-view-ips:hover {
+            background: #16a085;
             color: white;
         }
 
@@ -263,6 +310,41 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        .badge-admin {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .ip-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 1rem 0;
+        }
+
+        .ip-item {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            background: var(--dark-bg);
+        }
+
+        .ip-item strong {
+            color: var(--primary-color);
+        }
+
+        .ip-item small {
+            color: var(--text-secondary);
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
     </style>
 </head>
 <body>
@@ -318,6 +400,7 @@
                         <th>Username</th>
                         <th>Email</th>
                         <th>Status</th>
+                        <th>Role</th>
                         <th>Tokens</th>
                         <th>Created At</th>
                         <th>Actions</th>
@@ -354,6 +437,29 @@
                 </div>
                 <button type="submit" class="btn-submit" id="submitTokens">Add Tokens</button>
             </form>
+        </div>
+    </div>
+
+    <!-- IP History Modal -->
+    <div id="ipHistoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-close" id="closeIpModal">&times;</span>
+                <h2>Login History & IP Addresses</h2>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="ipModalUsername" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">IP Address History</label>
+                    <div id="ipList" class="ip-list">
+                        <p style="text-align: center; color: var(--text-secondary);">Loading...</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-submit" id="downloadIpLog">Download IP Log (CSV)</button>
+            </div>
         </div>
     </div>
 
@@ -409,16 +515,37 @@
                         </span>
                     </td>
                     <td>
+                        <span class="badge ${user.is_admin ? 'badge-admin' : 'badge-verified'}">
+                            ${user.is_admin ? 'Admin' : 'User'}
+                        </span>
+                    </td>
+                    <td>
                         <span class="token-badge">🪙 ${user.tokens || 0}</span>
                     </td>
                     <td>${new Date(user.created_at).toLocaleString()}</td>
                     <td>
-                        <button class="btn-add-tokens" data-user-id="${user.id}" data-username="${user.username}" data-tokens="${user.tokens || 0}">
-                            Add Tokens
-                        </button>
-                        <button class="btn-delete-user" data-user-id="${user.id}" data-username="${user.username}">
-                            Delete
-                        </button>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-add-tokens" data-user-id="${user.id}" data-username="${user.username}" data-tokens="${user.tokens || 0}" title="Add tokens">
+                                💰 Tokens
+                            </button>
+                            <button class="btn-action btn-admin" data-user-id="${user.id}" data-username="${user.username}" data-is-admin="${user.is_admin}" title="${user.is_admin ? 'Remove admin' : 'Make admin'}">
+                                ${user.is_admin ? '👤 Demote' : '⭐ Promote'}
+                            </button>
+                            ${!user.email_verified ? `
+                            <button class="btn-action btn-verify" data-user-id="${user.id}" data-username="${user.username}" title="Verify email">
+                                ✓ Verify
+                            </button>
+                            ` : ''}
+                            <button class="btn-action btn-reset-pw" data-user-id="${user.id}" data-username="${user.username}" data-verified="${user.email_verified}" title="Send password reset">
+                                🔑 Reset PW
+                            </button>
+                            <button class="btn-action btn-view-ips" data-user-id="${user.id}" data-username="${user.username}" title="View IP history">
+                                🌐 IPs
+                            </button>
+                            <button class="btn-delete-user btn-action" data-user-id="${user.id}" data-username="${user.username}" title="Delete user">
+                                🗑️ Delete
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
@@ -430,6 +557,44 @@
                         this.getAttribute('data-user-id'),
                         this.getAttribute('data-username'),
                         this.getAttribute('data-tokens')
+                    );
+                });
+            });
+
+            tbody.querySelectorAll('.btn-admin').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    toggleAdminStatus(
+                        this.getAttribute('data-user-id'),
+                        this.getAttribute('data-username'),
+                        this.getAttribute('data-is-admin') === 'true'
+                    );
+                });
+            });
+
+            tbody.querySelectorAll('.btn-verify').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    verifyUserEmail(
+                        this.getAttribute('data-user-id'),
+                        this.getAttribute('data-username')
+                    );
+                });
+            });
+
+            tbody.querySelectorAll('.btn-reset-pw').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    sendPasswordReset(
+                        this.getAttribute('data-user-id'),
+                        this.getAttribute('data-username'),
+                        this.getAttribute('data-verified') === 'true'
+                    );
+                });
+            });
+
+            tbody.querySelectorAll('.btn-view-ips').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    viewIpHistory(
+                        this.getAttribute('data-user-id'),
+                        this.getAttribute('data-username')
                     );
                 });
             });
@@ -573,6 +738,168 @@
             }
         }
 
+        // Toggle admin status
+        async function toggleAdminStatus(userId, username, isCurrentlyAdmin) {
+            const action = isCurrentlyAdmin ? 'remove admin privileges from' : 'promote to admin';
+            if (!confirm(`Are you sure you want to ${action} user "${username}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithCsrf(`/api/admin/users/${userId}/admin`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isAdmin: !isCurrentlyAdmin })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message);
+                    loadUsers();
+                } else {
+                    alert(data.error || 'Failed to update admin status');
+                }
+            } catch (error) {
+                console.error('Error updating admin status:', error);
+                alert('Failed to update admin status. Please try again.');
+            }
+        }
+
+        // Verify user email
+        async function verifyUserEmail(userId, username) {
+            if (!confirm(`Manually verify email for user "${username}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithCsrf(`/api/admin/users/${userId}/verify-email`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message);
+                    loadUsers();
+                } else {
+                    alert(data.error || 'Failed to verify email');
+                }
+            } catch (error) {
+                console.error('Error verifying email:', error);
+                alert('Failed to verify email. Please try again.');
+            }
+        }
+
+        // Send password reset
+        async function sendPasswordReset(userId, username, isVerified) {
+            if (!isVerified) {
+                alert('Cannot send password reset to unverified email address.');
+                return;
+            }
+
+            if (!confirm(`Send password reset email to user "${username}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithCsrf(`/api/admin/users/${userId}/send-password-reset`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message);
+                } else {
+                    alert(data.error || 'Failed to send password reset');
+                }
+            } catch (error) {
+                console.error('Error sending password reset:', error);
+                alert('Failed to send password reset. Please try again.');
+            }
+        }
+
+        // View IP history
+        let currentIpHistory = [];
+        let currentIpUserId = null;
+
+        async function viewIpHistory(userId, username) {
+            currentIpUserId = userId;
+            document.getElementById('ipModalUsername').value = username;
+            document.getElementById('ipList').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Loading...</p>';
+            document.getElementById('ipHistoryModal').style.display = 'block';
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/login-history`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentIpHistory = data.history;
+                    displayIpHistory(data.history);
+                } else {
+                    document.getElementById('ipList').innerHTML = '<p style="color: var(--primary-color);">Error loading IP history.</p>';
+                }
+            } catch (error) {
+                console.error('Error fetching IP history:', error);
+                document.getElementById('ipList').innerHTML = '<p style="color: var(--primary-color);">Error loading IP history.</p>';
+            }
+        }
+
+        function displayIpHistory(history) {
+            const ipList = document.getElementById('ipList');
+
+            if (history.length === 0) {
+                ipList.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No login history found.</p>';
+                return;
+            }
+
+            ipList.innerHTML = history.map(item => `
+                <div class="ip-item">
+                    <strong>IP:</strong> ${item.ip_address || 'Unknown'}<br>
+                    <strong>Action:</strong> ${item.action}<br>
+                    <strong>Date:</strong> ${new Date(item.created_at).toLocaleString()}
+                    <small><strong>User Agent:</strong> ${item.user_agent || 'Unknown'}</small>
+                </div>
+            `).join('');
+        }
+
+        function closeIpHistoryModal() {
+            document.getElementById('ipHistoryModal').style.display = 'none';
+            currentIpHistory = [];
+            currentIpUserId = null;
+        }
+
+        // Download IP log as CSV
+        function downloadIpLog() {
+            if (currentIpHistory.length === 0) {
+                alert('No IP history to download');
+                return;
+            }
+
+            const username = document.getElementById('ipModalUsername').value;
+            const csv = [
+                ['Username', 'IP Address', 'Action', 'Date', 'User Agent'],
+                ...currentIpHistory.map(item => [
+                    username,
+                    item.ip_address || 'Unknown',
+                    item.action,
+                    new Date(item.created_at).toISOString(),
+                    item.user_agent || 'Unknown'
+                ])
+            ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ip-log-${username}-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
         // Event listeners
         document.getElementById('logoutBtn').addEventListener('click', function(e) {
             e.preventDefault();
@@ -580,6 +907,7 @@
         });
 
         document.getElementById('closeModal').addEventListener('click', closeAddTokensModal);
+        document.getElementById('closeIpModal').addEventListener('click', closeIpHistoryModal);
 
         document.getElementById('addTokensModal').addEventListener('click', function(e) {
             if (e.target === this) {
@@ -587,7 +915,14 @@
             }
         });
 
+        document.getElementById('ipHistoryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeIpHistoryModal();
+            }
+        });
+
         document.getElementById('addTokensForm').addEventListener('submit', addTokensToUser);
+        document.getElementById('downloadIpLog').addEventListener('click', downloadIpLog);
 
         // Initialize
         loadUsers();

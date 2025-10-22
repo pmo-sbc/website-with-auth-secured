@@ -33,7 +33,7 @@ router.get('/api/admin/users', requireAdmin, asyncHandler(async (req, res) => {
   try {
     logger.db('SELECT', 'users', { action: 'list_all_users' });
     const users = db.prepare(`
-      SELECT id, username, email, email_verified, tokens, created_at
+      SELECT id, username, email, email_verified, is_admin, tokens, created_at
       FROM users
       ORDER BY created_at DESC
     `).all();
@@ -120,6 +120,177 @@ router.patch('/api/admin/users/:id/tokens', requireAdmin, csrfProtection, asyncH
     message: `${amount} token${amount > 1 ? 's' : ''} added successfully`,
     newBalance
   });
+}));
+
+/**
+ * PATCH /api/admin/users/:id/admin
+ * Toggle admin status for a user
+ */
+router.patch('/api/admin/users/:id/admin', requireAdmin, csrfProtection, asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { isAdmin } = req.body;
+
+  // Prevent user from removing their own admin status
+  if (userId === req.session.userId && !isAdmin) {
+    return res.status(400).json({
+      error: 'Cannot remove your own admin privileges'
+    });
+  }
+
+  const { getDatabase } = require('../db');
+  const db = getDatabase();
+
+  try {
+    const result = db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, userId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    logger.info('User admin status changed', {
+      userId,
+      isAdmin,
+      changedBy: req.session.userId
+    });
+
+    res.json({
+      success: true,
+      message: `User ${isAdmin ? 'promoted to' : 'removed from'} admin successfully`
+    });
+  } catch (error) {
+    logger.error('Error updating admin status', { error, userId });
+    throw error;
+  }
+}));
+
+/**
+ * POST /api/admin/users/:id/verify-email
+ * Manually verify a user's email (admin action)
+ */
+router.post('/api/admin/users/:id/verify-email', requireAdmin, csrfProtection, asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.id);
+
+  const { getDatabase } = require('../db');
+  const db = getDatabase();
+
+  try {
+    const result = db.prepare(`
+      UPDATE users
+      SET email_verified = 1, verification_token = NULL, verification_token_expires = NULL
+      WHERE id = ?
+    `).run(userId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    logger.info('Email verified by admin', {
+      userId,
+      verifiedBy: req.session.userId
+    });
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully'
+    });
+  } catch (error) {
+    logger.error('Error verifying email', { error, userId });
+    throw error;
+  }
+}));
+
+/**
+ * POST /api/admin/users/:id/send-password-reset
+ * Send password reset email to user (admin action)
+ */
+router.post('/api/admin/users/:id/send-password-reset', requireAdmin, csrfProtection, asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.id);
+
+  const user = userRepository.findById(userId);
+
+  if (!user) {
+    return res.status(404).json({
+      error: 'User not found'
+    });
+  }
+
+  if (!user.email_verified) {
+    return res.status(400).json({
+      error: 'Cannot send password reset to unverified email'
+    });
+  }
+
+  // Generate reset token
+  const crypto = require('crypto');
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  userRepository.setPasswordResetToken(user.id, resetToken, expiresAt);
+
+  // Send reset email
+  const emailService = require('../services/emailService');
+  await emailService.sendPasswordResetEmail(user.email, user.username, resetToken);
+
+  logger.info('Password reset sent by admin', {
+    userId,
+    sentBy: req.session.userId
+  });
+
+  res.json({
+    success: true,
+    message: 'Password reset email sent successfully'
+  });
+}));
+
+/**
+ * GET /api/admin/users/:id/activity
+ * Get activity logs for a specific user with IP addresses
+ */
+router.get('/api/admin/users/:id/activity', requireAdmin, asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.id);
+  const limit = parseInt(req.query.limit) || 100;
+  const offset = parseInt(req.query.offset) || 0;
+
+  const activityLogRepository = require('../db/activityLogRepository');
+  const logs = activityLogRepository.findByUserId(userId, limit, offset);
+
+  res.json({
+    success: true,
+    logs,
+    count: logs.length
+  });
+}));
+
+/**
+ * GET /api/admin/users/:id/login-history
+ * Get unique IP addresses that have logged into this user's account
+ */
+router.get('/api/admin/users/:id/login-history', requireAdmin, asyncHandler(async (req, res) => {
+  const userId = parseInt(req.params.id);
+
+  const { getDatabase } = require('../db');
+  const db = getDatabase();
+
+  try {
+    const loginHistory = db.prepare(`
+      SELECT DISTINCT ip_address, user_agent, created_at, action
+      FROM activity_logs
+      WHERE user_id = ? AND action IN ('user.login', 'user.register')
+      ORDER BY created_at DESC
+    `).all(userId);
+
+    res.json({
+      success: true,
+      history: loginHistory
+    });
+  } catch (error) {
+    logger.error('Error fetching login history', { error, userId });
+    throw error;
+  }
 }));
 
 module.exports = router;
