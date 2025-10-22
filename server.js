@@ -49,6 +49,13 @@ const analyticsRoutes = require('./src/routes/analyticsRoutes');
 // Initialize Express app
 const app = express();
 
+// Trust proxy - required for production behind reverse proxies (Nginx, Apache, Cloudflare, etc.)
+// This ensures req.ip and secure cookies work correctly
+if (config.isProduction) {
+  app.set('trust proxy', 1); // Trust first proxy
+  logger.info('Trust proxy enabled for production');
+}
+
 // Initialize database
 try {
   initializeDatabase();
