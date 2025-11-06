@@ -777,6 +777,17 @@
                             <label class="field-label">Output Language</label>
                             <select id="language" class="selector-dropdown">
                                 <option value="English">English</option>
+                                <option value="Spanish">Spanish</option>
+                                <option value="French">French</option>
+                                <option value="German">German</option>
+                                <option value="Italian">Italian</option>
+                                <option value="Portuguese">Portuguese</option>
+                                <option value="Chinese">Chinese</option>
+                                <option value="Japanese">Japanese</option>
+                                <option value="Korean">Korean</option>
+                                <option value="Arabic">Arabic</option>
+                                <option value="Hindi">Hindi</option>
+                                <option value="Russian">Russian</option>
                             </select>
                         </div>
                         <div>
@@ -1167,7 +1178,8 @@
                             inputElement = document.createElement('input');
                             inputElement.type = 'number';
                             inputElement.className = 'field-input';
-                            inputElement.value = input.value || '';
+                            inputElement.placeholder = input.placeholder || input.label;
+                            inputElement.value = input.default || input.value || '';
                         } else {
                             inputElement = document.createElement('input');
                             inputElement.type = 'text';
@@ -1429,7 +1441,11 @@
                 const value = input.value.trim();
                 if (!value) {
                     hasEmptyFields = true;
-                    emptyFieldLabels.push(input.placeholder || 'Unknown field');
+                    // Try to get label from the previous sibling or use placeholder
+                    const fieldDiv = input.parentElement;
+                    const labelElement = fieldDiv.querySelector('.field-label');
+                    const fieldName = labelElement ? labelElement.textContent : (input.placeholder || input.getAttribute('data-name') || 'Unknown field');
+                    emptyFieldLabels.push(fieldName);
                 }
             });
 
@@ -1491,9 +1507,29 @@
             // Replace placeholders (all fields are validated to be filled at this point)
             // Reuse the inputs already queried above for validation
             inputs.forEach(input => {
+                const name = input.getAttribute('data-name');
                 const value = input.value.trim();
-                finalPrompt = finalPrompt.replace('""', `"${value}"`);
+                const placeholder = `{{${name}}}`;
+                finalPrompt = finalPrompt.replaceAll(placeholder, value);
             });
+
+            // Apply global configuration options (language, tone, writing style)
+            const language = document.getElementById('language').value;
+            const voiceTone = document.getElementById('voiceTone').value;
+            const writingStyle = document.getElementById('writingStyle').value;
+
+            // Replace language references
+            finalPrompt = finalPrompt.replace(/respond only in the (\w+) language/gi, `respond only in the ${language} language`);
+
+            // Replace tone of voice (handle various phrasings)
+            if (voiceTone && voiceTone !== 'Default') {
+                finalPrompt = finalPrompt.replace(/You have a \w+ tone of voice\./gi, `You have a ${voiceTone} tone of voice.`);
+            }
+
+            // Replace writing style (handle various phrasings)
+            if (writingStyle && writingStyle !== 'Default') {
+                finalPrompt = finalPrompt.replace(/You have a \w+ writing style\./gi, `You have a ${writingStyle} writing style.`);
+            }
 
             // Track usage
             if (token && template.id) {

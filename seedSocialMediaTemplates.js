@@ -20,7 +20,7 @@ const socialMediaTemplates = [
     subcategory: 'Facebook',
     name: 'Facebook Post Ideas',
     description: 'Generate ideas for Facebook posts on your topic of choice that will engage your target audience',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an expert Facebook marketer. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Generate 5 ideas for Facebook posts on the topic "{{topic}}" that will engage the target audience "{{audience}}". Include a CTA and hashtags wherever possible.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an expert Facebook marketer. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Generate {{total_posts}} ideas for Facebook posts on the topic "{{topic}}" that will engage the target audience "{{audience}}". Include a CTA and hashtags wherever possible.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topic', type: 'text', label: 'Topic', placeholder: 'Enter your topic', required: true },
@@ -33,7 +33,7 @@ const socialMediaTemplates = [
     subcategory: 'Facebook',
     name: 'Facebook Group Post',
     description: 'Generate ideas for Facebook Group posts for your topic of choice',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an expert Facebook marketer. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Give me a list of 5 interesting and engaging questions to post on my Facebook Group about "{{topic}}".`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an expert Facebook marketer. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Give me a list of {{total_posts}} interesting and engaging questions to post on my Facebook Group about "{{topic}}".`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topic', type: 'text', label: 'Topic', placeholder: 'Enter your topic', required: true },
@@ -56,7 +56,7 @@ const socialMediaTemplates = [
     subcategory: 'Facebook',
     name: 'Facebook Post Calendar',
     description: 'Generate a Facebook content calendar for the next three months',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an expert Facebook marketer. You have a Creative tone of voice. You have a Argumentative writing style. Please create a Facebook Post Calendar for 3 months based on your product/service "{{topics}}". There should be 3 Facebook posts scheduled each week of the month. Every Facebook post should have a catchy headline and description. Try to use unique emojis in the description. The description should have a hook and entice the readers. The table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Post Title, Post Idea, Hashtags. Please organize each Facebook post in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an expert Facebook marketer. You have a Creative tone of voice. You have a Argumentative writing style. Please create a Facebook Post Calendar for {{total_months}} months based on your product/service "{{topics}}". There should be {{threads_per_week}} Facebook posts scheduled each week of the month. Every Facebook post should have a catchy headline and description. Try to use unique emojis in the description. The description should have a hook and entice the readers. The table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Post Title, Post Idea, Hashtags. Please organize each Facebook post in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topics', type: 'textarea', label: 'Topics', placeholder: 'Enter topics for content', required: true },
@@ -93,7 +93,7 @@ const socialMediaTemplates = [
     subcategory: 'Instagram',
     name: 'Instagram Post Calendar',
     description: 'Generates an Instagram content calendar for the next three months',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an Instagrammer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Please create an Instagram Calendar for 3 months based on your interests "{{topic}}". There should be 3 Instagram posts scheduled each week of the month. Every Instagram post should have a catchy description. Include emojis and the Instagram hashtags in the description. Try to use unique emojis in the description. The description should have a hook and entice the readers. The table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Post Idea, description, caption without hashtags, hashtags. Please organize each Instagram post in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an Instagrammer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Please create an Instagram Calendar for {{total_months}} months based on your interests "{{topic}}". There should be {{articles_per_week}} Instagram posts scheduled each week of the month. Every Instagram post should have a catchy description. Include emojis and the Instagram hashtags in the description. Try to use unique emojis in the description. The description should have a hook and entice the readers. The table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Post Idea, description, caption without hashtags, hashtags. Please organize each Instagram post in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topic', type: 'text', label: 'Topic', placeholder: 'Enter topic', required: true },
@@ -106,7 +106,7 @@ const socialMediaTemplates = [
     subcategory: 'Instagram',
     name: 'Instagram Hashtag Generator',
     description: 'Generate popular Instagram hashtags for your topic of choice',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an Instagram influencer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate 10 high performing Instagram hashtags for the following text: "{{instagram_post}}".`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an Instagram influencer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate {{total}} high performing Instagram hashtags for the following text: "{{instagram_post}}".`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'instagram_post', type: 'textarea', label: 'Instagram Post', placeholder: 'Enter Instagram post text', required: true },
@@ -206,7 +206,7 @@ const socialMediaTemplates = [
     subcategory: 'LinkedIn',
     name: 'LinkedIn Hashtag Generator',
     description: 'Generate popular Linkedin hashtags',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a LinkedIn influencer with a large following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate 10 high performing hashtags for the following LinkedIn Post: "{{post}}".`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a LinkedIn influencer with a large following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate {{total}} high performing hashtags for the following LinkedIn Post: "{{post}}".`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'post', type: 'textarea', label: 'Post', placeholder: 'Enter LinkedIn post', required: true },
@@ -218,7 +218,7 @@ const socialMediaTemplates = [
     subcategory: 'LinkedIn',
     name: 'LinkedIn Post Calendar',
     description: 'Generates a LinkedIn content calendar for the next three months',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an LinkedIn professional with a large following. You have a Creative tone of voice. You have a Argumentative writing style. Please create a LinkedIn Post Calendar for 3 months based on your interests "{{topic}}". There should be 3 LinkedIn posts scheduled each week of the month. The Posts should be engaging, informative, and relevant to various LinkedIn professionals across different industries. Please include posts that include industry insights, personal experiences, and thought leadership while maintaining a genuine and conversational tone. Please use simple and understandable words. Please include tips, personal experience, and fun facts in the Posts. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, LinkedIn Post Idea, Hashtags. Please organize each LinkedIn post in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are an LinkedIn professional with a large following. You have a Creative tone of voice. You have a Argumentative writing style. Please create a LinkedIn Post Calendar for {{total_months}} months based on your interests "{{topic}}". There should be {{posts_per_week}} LinkedIn posts scheduled each week of the month. The Posts should be engaging, informative, and relevant to various LinkedIn professionals across different industries. Please include posts that include industry insights, personal experiences, and thought leadership while maintaining a genuine and conversational tone. Please use simple and understandable words. Please include tips, personal experience, and fun facts in the Posts. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, LinkedIn Post Idea, Hashtags. Please organize each LinkedIn post in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topic', type: 'text', label: 'Topic', placeholder: 'Enter topic', required: true },
@@ -233,7 +233,7 @@ const socialMediaTemplates = [
     subcategory: 'Pinterest',
     name: 'Keywords For Pinterest',
     description: 'Generate SEO optimized keywords for your Pinterest posts',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Pinterest marketing expert. Do not self reference. Do not explain what you are doing. Please provide me with 50 high performing SEO keywords to use for Pinterest for the following topic: "{{topic}}"`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Pinterest marketing expert. Do not self reference. Do not explain what you are doing. Please provide me with {{total_keywords}} high performing SEO keywords to use for Pinterest for the following topic: "{{topic}}"`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topic', type: 'text', label: 'Topic', placeholder: 'Enter topic', required: true },
@@ -245,7 +245,7 @@ const socialMediaTemplates = [
     subcategory: 'Pinterest',
     name: 'Generate Pin Titles',
     description: 'Generate Pinterest pin titles options for your topic of choice',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Pinterest SEO marketer and copywriter. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please provide me with 10 engaging Pinterest pin titles for the topic "{{topic}}". The titles should be between 90 to 100 characters.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Pinterest SEO marketer and copywriter. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please provide me with {{total_titles}} engaging Pinterest pin titles for the topic "{{topic}}". The titles should be between 90 to 100 characters.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topic', type: 'text', label: 'Topic', placeholder: 'Enter topic', required: true },
@@ -257,7 +257,7 @@ const socialMediaTemplates = [
     subcategory: 'Pinterest',
     name: 'Generate Pin Descriptions',
     description: 'Create Pinterest pin descriptions for your post topic',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. Do not self reference. You are a Pinterest SEO marketer and copywriter. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please write 3 Pinterest description that is between 400 to 500 Characters for the following topic: "{{topic}}". Please include the following keywords "{{keywords}}".`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. Do not self reference. You are a Pinterest SEO marketer and copywriter. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please write {{total_desc}} Pinterest description that is between 400 to 500 Characters for the following topic: "{{topic}}". Please include the following keywords "{{keywords}}".`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topic', type: 'text', label: 'Topic', placeholder: 'Enter topic', required: true },
@@ -270,7 +270,7 @@ const socialMediaTemplates = [
     subcategory: 'Pinterest',
     name: 'Pinterest Hashtag Generator',
     description: 'Generate popular Pinterest hashtags for your topic of choice',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Pinterest marketer and influencer. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate 10 popular hashtags for the following text: "{{content_topic}}".`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Pinterest marketer and influencer. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate {{total_hashtags}} popular hashtags for the following text: "{{content_topic}}".`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'content_topic', type: 'textarea', label: 'Content/Topic', placeholder: 'Enter content or topic', required: true },
@@ -282,7 +282,7 @@ const socialMediaTemplates = [
     subcategory: 'Pinterest',
     name: 'Pinterest Pin Calendar',
     description: 'Generates a Pinterest content calendar for the next three months',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Pinterest marketer and influencer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Please create a Pinterest Pin Calendar with ideas for engaging pins for 3 months based on the topic "{{topics}}". There should be 5 Pins scheduled each week of the month. Every Pinterest post should be casual, informative, and engaging. Please use simple and understandable words. Please include tips, personal experience, and fun facts in the Pins. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Pinterest Pin Idea, Hashtags. Please organize each Pinterest Pin in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Pinterest marketer and influencer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Please create a Pinterest Pin Calendar with ideas for engaging pins for {{total_months}} months based on the topic "{{topics}}". There should be {{threads_per_week}} Pins scheduled each week of the month. Every Pinterest post should be casual, informative, and engaging. Please use simple and understandable words. Please include tips, personal experience, and fun facts in the Pins. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Pinterest Pin Idea, Hashtags. Please organize each Pinterest Pin in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topics', type: 'text', label: 'Topics', placeholder: 'Enter topics', required: true },
@@ -297,7 +297,7 @@ const socialMediaTemplates = [
     subcategory: 'TikTok',
     name: 'TikTok Video Ideas',
     description: 'Generate catchy video ideas for your topic of choice',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a TikTok marketer and influencer. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate 10 TikTok video ideas that have the potential to go viral for the topic "{{topic}}". Please include catchy titles and trending hashtags for each idea.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a TikTok marketer and influencer. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate {{total_ideas}} TikTok video ideas that have the potential to go viral for the topic "{{topic}}". Please include catchy titles and trending hashtags for each idea.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topic', type: 'text', label: 'Topic', placeholder: 'Enter topic', required: true },
@@ -322,7 +322,7 @@ const socialMediaTemplates = [
     subcategory: 'TikTok',
     name: 'TikTok Hashtag Generator',
     description: 'Generate trending TikTok hashtags for your topic of choice',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a TikTok influencer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate 10 trending hashtags for the following text: "{{content_topic}}".`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a TikTok influencer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate {{total_hashtags}} trending hashtags for the following text: "{{content_topic}}".`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'content_topic', type: 'textarea', label: 'Content/Topic', placeholder: 'Enter content or topic', required: true },
@@ -334,7 +334,7 @@ const socialMediaTemplates = [
     subcategory: 'TikTok',
     name: 'TikTok Post Calendar',
     description: 'Generate a TikTok content calendar for the next three months',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a TikTok creator and influencer. You have a Creative tone of voice. You have a Argumentative writing style. Please create a TikTok content Calendar with ideas for engaging TikTok for 3 months based on the topic "{{topics}}". There should be 5 videos scheduled each week of the month. The videos should be entertaining, informative, and engaging. Please use simple and understandable words. Please include tips, personal experience, and fun facts in the videos. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, TikTok idea, Hashtags, Trending Songs. Please organize each TikTok idea in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a TikTok creator and influencer. You have a Creative tone of voice. You have a Argumentative writing style. Please create a TikTok content Calendar with ideas for engaging TikTok for {{total_months}} months based on the topic "{{topics}}". There should be {{threads_per_week}} videos scheduled each week of the month. The videos should be entertaining, informative, and engaging. Please use simple and understandable words. Please include tips, personal experience, and fun facts in the videos. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, TikTok idea, Hashtags, Trending Songs. Please organize each TikTok idea in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topics', type: 'text', label: 'Topics', placeholder: 'Enter topics', required: true },
@@ -405,7 +405,7 @@ const socialMediaTemplates = [
     subcategory: 'Twitter',
     name: 'Twitter Hashtag Generator',
     description: 'Generate popular Twitter hashtags for your topic of choice',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Twitter influencer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate 10 high performing hashtags for the following text: "{{content}}".`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Twitter influencer with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate {{total_hashtags}} high performing hashtags for the following text: "{{content}}".`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'content', type: 'textarea', label: 'Content', placeholder: 'Enter content', required: true },
@@ -417,7 +417,7 @@ const socialMediaTemplates = [
     subcategory: 'Twitter',
     name: 'Twitter Thread Calendar',
     description: 'Generates a Twitter content calendar for the next three months',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Twitter professional with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Please create a Twitter thread Calendar for 3 months based on the topic "{{topics}}". There should be 5 Twitter threads scheduled each week of the month. The twitter threads should be casual, informative, and engaging. Please use simple and understandable words. Please include statistics, personal experience, and fun facts in the twitter threads. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Twitter Thread Idea, Hashtags. Please organize each blog post in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a Twitter professional with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Please create a Twitter thread Calendar for {{total_months}} months based on the topic "{{topics}}". There should be {{threads_per_week}} Twitter threads scheduled each week of the month. The twitter threads should be casual, informative, and engaging. Please use simple and understandable words. Please include statistics, personal experience, and fun facts in the twitter threads. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Twitter Thread Idea, Hashtags. Please organize each blog post in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topics', type: 'text', label: 'Topics', placeholder: 'Enter topics', required: true },
@@ -508,7 +508,7 @@ const socialMediaTemplates = [
     subcategory: 'YouTube',
     name: 'YouTube Tags Generator',
     description: 'Generate trending TikTok hashtags for your topic of choice',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a YouTuber with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate 10 comma separated keyword with spaces between the words. Please capitalize each word in the YouTube tag. Please do not generate hashtags. If you generate anything that starts with the "#" character then remove it. YouTube tags are comma separated keywords that describe what the text I give you. Please do not put the YouTube tags in a markdown table. Please generate the YouTube tags for the text: "{{video_description_transcript}}".`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a YouTuber with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Do not self reference. Do not explain what you are doing. Please generate {{total_tags}} comma separated keyword with spaces between the words. Please capitalize each word in the YouTube tag. Please do not generate hashtags. If you generate anything that starts with the "#" character then remove it. YouTube tags are comma separated keywords that describe what the text I give you. Please do not put the YouTube tags in a markdown table. Please generate the YouTube tags for the text: "{{video_description_transcript}}".`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'video_description_transcript', type: 'textarea', label: 'Video Description/Transcript', placeholder: 'Enter video description or transcript', required: true },
@@ -520,7 +520,7 @@ const socialMediaTemplates = [
     subcategory: 'YouTube',
     name: 'YouTube Video Calendar',
     description: 'Generates a YouTube content calendar for the next three months',
-    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a YouTuber with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Please create a YouTube Video Calendar for 3 months based on your interests "{{topics}}". There should be 1 videos scheduled each week of the month. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Video Title, Video Description. The Video title should be no longer than 100 characters. The Video description should describe what the video is about. Please organize each video in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
+    prompt_template: `Please ignore all previous instructions. Please respond only in the english language. You are a YouTuber with a large fan following. You have a Creative tone of voice. You have a Argumentative writing style. Please create a YouTube Video Calendar for {{total_months}} months based on your interests "{{topics}}". There should be {{videos_per_week}} videos scheduled each week of the month. The markdown table should have actual dates in the future. Each month should have its own table. The table columns should be: Date, Video Title, Video Description. The Video title should be no longer than 100 characters. The Video description should describe what the video is about. Please organize each video in the table so that it looks like a calendar. Do not self reference. Do not explain what you are doing. Reply back only with the table.`,
     is_active: 1,
     inputs: JSON.stringify([
       { name: 'topics', type: 'text', label: 'Topics', placeholder: 'Enter topics', required: true },
