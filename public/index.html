@@ -382,6 +382,24 @@
     </footer>
 
     <script src="js/session-manager.js"></script>
+    <script src="js/cart.js"></script>
     <script src="js/auth.js"></script>
+    <script>
+        // Update cart count after auth check completes
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof updateCartCount === 'function') {
+                    updateCartCount();
+                }
+            }, 500);
+        });
+        
+        // Listen for cart updates
+        window.addEventListener('cartUpdated', function() {
+            if (typeof updateCartCount === 'function') {
+                updateCartCount();
+            }
+        });
+    </script>
 </body>
 </html>

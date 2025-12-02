@@ -63,9 +63,9 @@ router.get('/cart', (req, res) => {
 
 /**
  * GET /checkout
- * Checkout page
+ * Checkout page (requires authentication)
  */
-router.get('/checkout', (req, res) => {
+router.get('/checkout', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, '../../public', 'checkout.html'));
 });
 

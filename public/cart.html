@@ -410,7 +410,20 @@
                     </div>
                 </div>
 
-                <button class="btn-checkout" id="checkoutBtn" disabled>Proceed to Checkout</button>
+                <div id="checkoutSection">
+                    <button class="btn-checkout" id="checkoutBtn" disabled>Proceed to Checkout</button>
+                    <div id="loginPrompt" style="display: none; margin-top: 1rem; padding: 1.5rem; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; text-align: center;">
+                        <p style="margin: 0 0 1rem 0; color: #856404; font-size: 1.1rem;">
+                            <strong>🔒 Login Required</strong>
+                        </p>
+                        <p style="margin: 0 0 1rem 0; color: #856404;">
+                            Please log in to proceed with checkout.
+                        </p>
+                        <a href="/login" class="btn-checkout" style="display: inline-block; text-decoration: none; background: var(--primary-color);">
+                            Go to Login
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -494,12 +507,12 @@
                         <a href="/product" class="btn-continue-shopping">Continue Shopping</a>
                     </div>
                 `;
-                checkoutBtn.disabled = true;
                 updateSummary();
+                updateCheckoutButton();
                 return;
             }
 
-            checkoutBtn.disabled = false;
+            updateCheckoutButton();
 
             cartItemsEl.innerHTML = cart.map(item => {
                 const itemTotal = (item.finalPrice !== undefined ? item.finalPrice : item.price) * (item.quantity || 1);
@@ -541,10 +554,12 @@
             });
 
             updateSummary();
+            updateCheckoutButton();
         }
 
         // Update quantity function
         function updateQuantity(itemId, change) {
+            // This function is called by event listeners, updateCheckoutButton will be called after loadCartItems
             if (typeof getCart !== 'function' || typeof updateItemQuantity !== 'function') {
                 console.error('Cart functions not available');
                 return;
@@ -686,7 +701,54 @@
             }
         });
 
+        // Check if user is logged in
+        let isLoggedIn = false;
+        
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/user', {
+                    credentials: 'include'
+                });
+                isLoggedIn = response.ok;
+                updateCheckoutButton();
+            } catch (error) {
+                isLoggedIn = false;
+                updateCheckoutButton();
+            }
+        }
+
+        function updateCheckoutButton() {
+            const loginPrompt = document.getElementById('loginPrompt');
+            const cart = getCart();
+            const hasItems = cart && cart.length > 0;
+            
+            if (isLoggedIn) {
+                checkoutBtn.style.display = hasItems ? 'block' : 'none';
+                if (loginPrompt) loginPrompt.style.display = 'none';
+                checkoutBtn.disabled = !hasItems;
+            } else {
+                checkoutBtn.style.display = 'none';
+                if (loginPrompt) {
+                    loginPrompt.style.display = hasItems ? 'block' : 'none';
+                }
+            }
+        }
+
         checkoutBtn.addEventListener('click', function() {
+            // Check if user is logged in before proceeding
+            if (!isLoggedIn) {
+                // Save cart state and redirect to login
+                if (cartDiscountApplied) {
+                    sessionStorage.setItem('cartDiscountApplied', 'true');
+                    sessionStorage.setItem('cartDiscountCode', cartDiscountCode || '');
+                    sessionStorage.setItem('cartDiscountPercentage', currentDiscountPercentage.toString());
+                }
+                // Store intended destination
+                sessionStorage.setItem('redirectAfterLogin', '/checkout');
+                window.location.href = '/login';
+                return;
+            }
+
             // Save discount state to sessionStorage
             if (cartDiscountApplied) {
                 sessionStorage.setItem('cartDiscountApplied', 'true');
@@ -703,6 +765,7 @@
         // Initialize
         loadCartItems();
         updateCartCount();
+        checkAuthStatus();
 
         // Listen for cart updates
         window.addEventListener('cartUpdated', function() {

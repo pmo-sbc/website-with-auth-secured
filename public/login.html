@@ -288,8 +288,14 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Success - redirect to dashboard
-                    window.location.href = '/dashboard';
+                    // Success - check for redirect destination
+                    const redirectTo = sessionStorage.getItem('redirectAfterLogin');
+                    if (redirectTo) {
+                        sessionStorage.removeItem('redirectAfterLogin');
+                        window.location.href = redirectTo;
+                    } else {
+                        window.location.href = '/dashboard';
+                    }
                 } else if (response.status === 403 && data.requiresVerification) {
                     // Email not verified
                     unverifiedEmail = data.email || username;
