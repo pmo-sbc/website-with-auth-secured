@@ -62,6 +62,14 @@ router.get('/cart', (req, res) => {
 });
 
 /**
+ * GET /courses
+ * Courses page (requires authentication)
+ */
+router.get('/courses', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public', 'courses.html'));
+});
+
+/**
  * GET /checkout
  * Checkout page (requires authentication)
  */

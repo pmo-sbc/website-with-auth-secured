@@ -9,6 +9,7 @@ const paymentService = require('../services/paymentService');
 const orderRepository = require('../db/orderRepository');
 const discountCodeRepository = require('../db/discountCodeRepository');
 const userRepository = require('../db/userRepository');
+const productRepository = require('../db/productRepository');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { requireAuth } = require('../middleware/auth');
 const logger = require('../utils/logger');
@@ -131,37 +132,35 @@ router.post(
 
       // Process token purchases if any
       try {
-        const tokensPerPurchase = 100; // Fixed: each "Tokens" product purchase gives 100 tokens
         let totalTokensToAdd = 0;
 
-        // Get tokens product ID from database for more reliable matching
+        // Get all products to check which ones provide tokens
         const productRepository = require('../db/productRepository');
-        const tokensProduct = productRepository.findAll().find(p => 
-          p.name === 'Tokens' || p.name.toLowerCase() === 'tokens'
-        );
-        const tokensProductId = tokensProduct ? tokensProduct.id : null;
+        const allProducts = productRepository.findAll(true); // Include inactive for lookup
+        const productsMap = new Map(allProducts.map(p => [p.id, p]));
 
         logger.info('Processing token purchases', {
           userId,
-          tokensProductId,
           orderItems: order.items,
-          itemCount: order.items.length
+          itemCount: order.items.length,
+          productsInDb: allProducts.length
         });
 
-        // Check if order contains "Tokens" product (match by name or ID)
+        // Check each item in the order to see if it provides tokens
         order.items.forEach(item => {
-          const isTokensProduct = 
-            (item.name === 'Tokens' || item.name.toLowerCase() === 'tokens') ||
-            (tokensProductId && item.id === tokensProductId);
+          const productId = item.id;
+          const product = productsMap.get(productId);
           
-          if (isTokensProduct) {
+          // Check if this product provides tokens
+          if (product && product.provides_tokens && product.token_quantity > 0) {
             const quantity = item.quantity || 1;
-            const tokensForThisItem = tokensPerPurchase * quantity;
+            const tokensForThisItem = product.token_quantity * quantity;
             totalTokensToAdd += tokensForThisItem;
-            logger.info('Found tokens purchase in order', {
+            logger.info('Found product that provides tokens', {
               userId,
-              itemId: item.id,
-              itemName: item.name,
+              productId: product.id,
+              productName: product.name,
+              tokenQuantityPerUnit: product.token_quantity,
               quantity,
               tokensToAdd: tokensForThisItem
             });
@@ -240,13 +239,18 @@ router.post(
         // Continue anyway - order is already saved
       }
 
-      // Calculate tokens added for response
-      const tokensPerPurchase = 100;
+      // Calculate tokens added for response (use same logic as above)
       let totalTokensAdded = 0;
+      const productRepository = require('../db/productRepository');
+      const allProducts = productRepository.findAll(true);
+      const productsMap = new Map(allProducts.map(p => [p.id, p]));
+      
       order.items.forEach(item => {
-        if (item.name === 'Tokens' || item.name.toLowerCase() === 'tokens') {
+        const productId = item.id;
+        const product = productsMap.get(productId);
+        if (product && product.provides_tokens && product.token_quantity > 0) {
           const quantity = item.quantity || 1;
-          totalTokensAdded += tokensPerPurchase * quantity;
+          totalTokensAdded += product.token_quantity * quantity;
         }
       });
 
@@ -328,6 +332,72 @@ router.post(
         success: false,
         error: 'Failed to create PayPal order. Please try again.'
       });
+    }
+  })
+);
+
+/**
+ * GET /api/orders/purchased-products
+ * Get unique products purchased by the authenticated user with full product details
+ * NOTE: This route must be defined BEFORE /orders to avoid route matching conflicts
+ */
+router.get(
+  '/orders/purchased-products',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+
+    try {
+      // Get all orders for the user
+      const orders = orderRepository.findByUserId(userId, 1000, 0); // Get a large number to ensure we get all products
+      
+      // Extract unique product IDs from all orders
+      const productIds = new Set();
+      const productPurchaseDates = new Map(); // Track when each product was first purchased
+      
+      orders.forEach(order => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach(item => {
+            if (item.id) {
+              productIds.add(item.id);
+              // Track the earliest purchase date for each product
+              if (!productPurchaseDates.has(item.id) || 
+                  new Date(order.created_at) < new Date(productPurchaseDates.get(item.id))) {
+                productPurchaseDates.set(item.id, order.created_at);
+              }
+            }
+          });
+        }
+      });
+
+      // Fetch full product details for all purchased products
+      const purchasedProducts = [];
+      for (const productId of productIds) {
+        const product = productRepository.findById(productId);
+        if (product) {
+          purchasedProducts.push({
+            ...product,
+            purchasedDate: productPurchaseDates.get(productId)
+          });
+        }
+      }
+
+      // Sort by purchase date (most recent first)
+      purchasedProducts.sort((a, b) => {
+        return new Date(b.purchasedDate) - new Date(a.purchasedDate);
+      });
+
+      res.json({
+        success: true,
+        products: purchasedProducts,
+        count: purchasedProducts.length
+      });
+    } catch (error) {
+      logger.error('Error fetching purchased products', {
+        error: error.message,
+        userId
+      });
+      throw error;
     }
   })
 );

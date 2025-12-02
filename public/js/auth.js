@@ -20,6 +20,7 @@ function checkAuth() {
             <li><a href="/">Home</a></li>
             <li><a href="/product">Product</a></li>
             <li><a href="/templates.html">Prompt Studio</a></li>
+            <li><a href="/courses">Courses</a></li>
             <li><a href="/dashboard">My Vault</a></li>
             <li><a href="/profile">Profile</a></li>
             <li id="adminMenuLink" style="display: none;"><a href="/admin/users">User Management</a></li>

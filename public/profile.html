@@ -304,6 +304,92 @@
             color: #1a1a1a;
             padding-top: 0.5rem;
         }
+
+        .purchased-product-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            background: #fafafa;
+            transition: box-shadow 0.2s;
+        }
+
+        .purchased-product-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .purchased-product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .purchased-product-name {
+            font-weight: 600;
+            color: #2c5aa0;
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .purchased-product-date {
+            color: #666666;
+            font-size: 0.9rem;
+        }
+
+        .purchased-product-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .badge-course {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+
+        .badge-tokens {
+            background: rgba(241, 196, 15, 0.2);
+            color: #f1c40f;
+        }
+
+        .purchased-product-details {
+            margin-top: 1rem;
+        }
+
+        .product-detail-item {
+            padding: 0.75rem;
+            background: #ffffff;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid #3498db;
+        }
+
+        .product-detail-label {
+            font-weight: 600;
+            color: #666666;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .product-detail-value {
+            color: #1a1a1a;
+            font-size: 1rem;
+        }
+
+        .product-detail-value a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .product-detail-value a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -465,6 +551,29 @@
             </form>
         </div>
 
+        <!-- My Purchased Products -->
+        <div class="profile-card">
+            <h2>🛍️ My Purchased Products</h2>
+            <p style="color: #666666; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                View all products you have purchased, including course access and token purchases.
+            </p>
+
+            <div id="purchasedProductsLoading" style="text-align: center; padding: 2rem; color: #666;">
+                Loading purchased products...
+            </div>
+
+            <div id="purchasedProductsError" class="error-message" style="display: none;"></div>
+
+            <div id="purchasedProductsList" style="display: none;">
+                <!-- Purchased products will be loaded here -->
+            </div>
+
+            <div id="noPurchasedProducts" style="text-align: center; padding: 2rem; color: #666; display: none;">
+                <p style="font-size: 1.1rem; font-weight: 500; margin-bottom: 0.5rem;">No products purchased yet.</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Your purchased products will appear here once you make a purchase.</p>
+            </div>
+        </div>
+
         <!-- Transaction History -->
         <div class="profile-card">
             <h2>💳 Transaction History</h2>
@@ -513,6 +622,145 @@
     </div>
 
     <script>
+        // Load purchased products
+        async function loadPurchasedProducts() {
+            const loadingEl = document.getElementById('purchasedProductsLoading');
+            const errorEl = document.getElementById('purchasedProductsError');
+            const listEl = document.getElementById('purchasedProductsList');
+            const noProductsEl = document.getElementById('noPurchasedProducts');
+
+            try {
+                loadingEl.style.display = 'block';
+                errorEl.style.display = 'none';
+                listEl.style.display = 'none';
+                noProductsEl.style.display = 'none';
+
+                const response = await fetch('/api/orders/purchased-products', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        loadingEl.style.display = 'none';
+                        noProductsEl.style.display = 'block';
+                        return;
+                    }
+                    throw new Error('Failed to load purchased products');
+                }
+
+                const data = await response.json();
+                loadingEl.style.display = 'none';
+
+                if (!data.success || !data.products || data.products.length === 0) {
+                    noProductsEl.style.display = 'block';
+                    return;
+                }
+
+                // Display purchased products
+                listEl.innerHTML = data.products.map(product => {
+                    const purchaseDate = product.purchasedDate ? new Date(product.purchasedDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    }) : 'Unknown';
+
+                    let badges = '';
+                    if (product.is_course) {
+                        badges += '<span class="purchased-product-badge badge-course">📚 Course</span>';
+                    }
+                    if (product.provides_tokens && product.token_quantity > 0) {
+                        badges += `<span class="purchased-product-badge badge-tokens">🪙 ${product.token_quantity} Tokens</span>`;
+                    }
+
+                    let detailsHtml = '';
+                    
+                    // Course details
+                    if (product.is_course) {
+                        if (product.course_date) {
+                            const courseDate = new Date(product.course_date);
+                            const courseDateStr = courseDate.toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            detailsHtml += `
+                                <div class="product-detail-item">
+                                    <div class="product-detail-label">📅 Course Date & Time</div>
+                                    <div class="product-detail-value">${courseDateStr}</div>
+                                </div>
+                            `;
+                        }
+                        if (product.course_zoom_link) {
+                            detailsHtml += `
+                                <div class="product-detail-item">
+                                    <div class="product-detail-label">🔗 Zoom Link</div>
+                                    <div class="product-detail-value">
+                                        <a href="${product.course_zoom_link}" target="_blank" rel="noopener noreferrer">
+                                            ${product.course_zoom_link}
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    // Token details
+                    if (product.provides_tokens && product.token_quantity > 0) {
+                        detailsHtml += `
+                            <div class="product-detail-item">
+                                <div class="product-detail-label">🪙 Tokens Provided</div>
+                                <div class="product-detail-value">${product.token_quantity} tokens per purchase</div>
+                            </div>
+                        `;
+                    }
+
+                    // Product description
+                    if (product.description) {
+                        detailsHtml += `
+                            <div class="product-detail-item">
+                                <div class="product-detail-label">📝 Description</div>
+                                <div class="product-detail-value">${escapeHtml(product.description)}</div>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="purchased-product-card">
+                            <div class="purchased-product-header">
+                                <div>
+                                    <div class="purchased-product-name">
+                                        ${escapeHtml(product.name)}
+                                        ${badges}
+                                    </div>
+                                    <div class="purchased-product-date">Purchased on ${purchaseDate}</div>
+                                </div>
+                                <div style="font-weight: 600; color: #2c5aa0;">
+                                    $${product.price.toFixed(2)}
+                                </div>
+                            </div>
+                            ${detailsHtml ? `<div class="purchased-product-details">${detailsHtml}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                listEl.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading purchased products:', error);
+                loadingEl.style.display = 'none';
+                errorEl.textContent = 'Failed to load purchased products. Please try again later.';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Load transactions
         async function loadTransactions() {
             const loadingEl = document.getElementById('transactionsLoading');
@@ -947,12 +1195,14 @@
             document.addEventListener('DOMContentLoaded', function() {
                 setupFormListeners();
                 setTimeout(loadProfileData, 100);
+                setTimeout(loadPurchasedProducts, 150);
                 setTimeout(loadTransactions, 200);
                 setTimeout(setupLogoutHandler, 500); // Wait for auth.js to create navigation
             });
         } else {
             setupFormListeners();
             setTimeout(loadProfileData, 100);
+            setTimeout(loadPurchasedProducts, 150);
             setTimeout(loadTransactions, 200);
             setTimeout(setupLogoutHandler, 500); // Wait for auth.js to create navigation
         }

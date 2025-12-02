@@ -44,22 +44,37 @@ class ProductRepository {
   /**
    * Create a new product
    */
-  create(name, price, description = null) {
+  create(name, price, description = null, is_active = true, provides_tokens = false, token_quantity = 0, is_course = false, course_date = null, course_zoom_link = null) {
     const db = getDatabase();
     const query = `
-      INSERT INTO products (name, price, description, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      INSERT INTO products (name, price, description, is_active, provides_tokens, token_quantity, is_course, course_date, course_zoom_link, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `;
 
     try {
-      logger.db('INSERT', 'products', { name, price });
-      const result = db.prepare(query).run(name, price, description);
+      logger.db('INSERT', 'products', { name, price, provides_tokens, token_quantity, is_course });
+      const result = db.prepare(query).run(
+        name, 
+        price, 
+        description, 
+        is_active ? 1 : 0, 
+        provides_tokens ? 1 : 0, 
+        token_quantity || 0,
+        is_course ? 1 : 0,
+        course_date || null,
+        course_zoom_link || null
+      );
       return {
         id: result.lastInsertRowid,
         name,
         price,
         description,
-        is_active: 1
+        is_active: is_active ? 1 : 0,
+        provides_tokens: provides_tokens ? 1 : 0,
+        token_quantity: token_quantity || 0,
+        is_course: is_course ? 1 : 0,
+        course_date: course_date || null,
+        course_zoom_link: course_zoom_link || null
       };
     } catch (error) {
       logger.error('Error creating product', error);
@@ -70,17 +85,28 @@ class ProductRepository {
   /**
    * Update a product
    */
-  update(id, { name, price, description, is_active }) {
+  update(id, { name, price, description, is_active, provides_tokens, token_quantity, is_course, course_date, course_zoom_link }) {
     const db = getDatabase();
     const query = `
       UPDATE products
-      SET name = ?, price = ?, description = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, price = ?, description = ?, is_active = ?, provides_tokens = ?, token_quantity = ?, is_course = ?, course_date = ?, course_zoom_link = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
 
     try {
-      logger.db('UPDATE', 'products', { id, name, price });
-      const result = db.prepare(query).run(name, price, description, is_active ? 1 : 0, id);
+      logger.db('UPDATE', 'products', { id, name, price, provides_tokens, token_quantity, is_course });
+      const result = db.prepare(query).run(
+        name, 
+        price, 
+        description, 
+        is_active ? 1 : 0, 
+        provides_tokens ? 1 : 0, 
+        token_quantity || 0,
+        is_course ? 1 : 0,
+        course_date || null,
+        course_zoom_link || null,
+        id
+      );
       return result.changes > 0;
     } catch (error) {
       logger.error('Error updating product', error);

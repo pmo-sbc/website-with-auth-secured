@@ -164,6 +164,11 @@ function createTables() {
       price REAL NOT NULL,
       description TEXT,
       is_active BOOLEAN DEFAULT 1,
+      provides_tokens BOOLEAN DEFAULT 0,
+      token_quantity INTEGER DEFAULT 0,
+      is_course BOOLEAN DEFAULT 0,
+      course_date DATETIME,
+      course_zoom_link TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

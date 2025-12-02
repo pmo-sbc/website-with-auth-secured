@@ -299,6 +299,7 @@
                             <th>Name</th>
                             <th>Price</th>
                             <th>Description</th>
+                            <th>Tokens</th>
                             <th>Purchases</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -367,6 +368,37 @@
                     <label class="form-label">
                         <input type="checkbox" id="productIsActive" checked> Active
                     </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="productProvidesTokens"> This product provides tokens
+                    </label>
+                </div>
+                <div class="form-group" id="tokenQuantityGroup" style="display: none;">
+                    <label class="form-label" for="productTokenQuantity">Token Quantity *</label>
+                    <input type="number" id="productTokenQuantity" class="form-input" min="0" step="1" value="0">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                        Number of tokens to grant when this product is purchased
+                    </small>
+                </div>
+                <div class="form-group" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                    <label class="form-label">
+                        <input type="checkbox" id="productIsCourse"> This product is a course
+                    </label>
+                </div>
+                <div class="form-group" id="courseFieldsGroup" style="display: none;">
+                    <label class="form-label" for="productCourseDate">Course Date & Time *</label>
+                    <input type="datetime-local" id="productCourseDate" class="form-input">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                        Date and time when the course will be held
+                    </small>
+                </div>
+                <div class="form-group" id="courseZoomLinkGroup" style="display: none;">
+                    <label class="form-label" for="productCourseZoomLink">Zoom Link *</label>
+                    <input type="url" id="productCourseZoomLink" class="form-input" placeholder="https://zoom.us/j/...">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">
+                        Zoom meeting link for the course
+                    </small>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button type="submit" class="btn-primary" style="flex: 1;">Save</button>
@@ -439,12 +471,26 @@
                     return;
                 }
 
-                tableBody.innerHTML = data.products.map(product => `
+                tableBody.innerHTML = data.products.map(product => {
+                    const courseDate = product.course_date ? new Date(product.course_date).toLocaleString() : '';
+                    return `
                     <tr>
                         <td>${product.id}</td>
-                        <td>${escapeHtml(product.name)}</td>
+                        <td>
+                            ${escapeHtml(product.name)}
+                            ${product.is_course ? 
+                                `<span class="badge" style="background: #3498db; color: white; margin-left: 0.5rem;" title="Course: ${courseDate}">📚 Course</span>` : 
+                                ''
+                            }
+                        </td>
                         <td>$${product.price.toFixed(2)}</td>
                         <td>${escapeHtml(product.description || '')}</td>
+                        <td>
+                            ${product.provides_tokens ? 
+                                `<span class="badge badge-active" title="Provides ${product.token_quantity || 0} tokens per purchase">🪙 ${product.token_quantity || 0}</span>` : 
+                                '<span style="color: var(--text-secondary);">—</span>'
+                            }
+                        </td>
                         <td>${product.purchase_count || 0}</td>
                         <td>
                             <span class="badge ${product.is_active ? 'badge-active' : 'badge-inactive'}">
@@ -456,7 +502,8 @@
                             <button class="btn-danger delete-product-btn" data-product-id="${product.id}" data-product-name="${escapeHtml(product.name)}">Delete</button>
                         </td>
                     </tr>
-                `).join('');
+                `;
+                }).join('');
 
                 tableContainer.style.display = 'block';
             } catch (error) {
@@ -532,6 +579,14 @@
             form.reset();
             document.getElementById('productId').value = '';
             document.getElementById('productIsActive').checked = true;
+            document.getElementById('productProvidesTokens').checked = false;
+            document.getElementById('productTokenQuantity').value = '0';
+            document.getElementById('tokenQuantityGroup').style.display = 'none';
+            document.getElementById('productIsCourse').checked = false;
+            document.getElementById('productCourseDate').value = '';
+            document.getElementById('productCourseZoomLink').value = '';
+            document.getElementById('courseFieldsGroup').style.display = 'none';
+            document.getElementById('courseZoomLinkGroup').style.display = 'none';
 
             if (productId) {
                 title.textContent = 'Edit Product';
@@ -565,6 +620,31 @@
                     document.getElementById('productPrice').value = p.price;
                     document.getElementById('productDescription').value = p.description || '';
                     document.getElementById('productIsActive').checked = p.is_active;
+                    document.getElementById('productProvidesTokens').checked = p.provides_tokens || false;
+                    document.getElementById('productTokenQuantity').value = p.token_quantity || 0;
+                    // Show/hide token quantity field based on checkbox
+                    document.getElementById('tokenQuantityGroup').style.display = 
+                        (p.provides_tokens || false) ? 'block' : 'none';
+                    
+                    // Course fields
+                    document.getElementById('productIsCourse').checked = p.is_course || false;
+                    if (p.course_date) {
+                        // Convert datetime to local datetime-local format (YYYY-MM-DDTHH:mm)
+                        const courseDate = new Date(p.course_date);
+                        const year = courseDate.getFullYear();
+                        const month = String(courseDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(courseDate.getDate()).padStart(2, '0');
+                        const hours = String(courseDate.getHours()).padStart(2, '0');
+                        const minutes = String(courseDate.getMinutes()).padStart(2, '0');
+                        document.getElementById('productCourseDate').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                    } else {
+                        document.getElementById('productCourseDate').value = '';
+                    }
+                    document.getElementById('productCourseZoomLink').value = p.course_zoom_link || '';
+                    // Show/hide course fields based on checkbox
+                    const courseFieldsVisible = (p.is_course || false);
+                    document.getElementById('courseFieldsGroup').style.display = courseFieldsVisible ? 'block' : 'none';
+                    document.getElementById('courseZoomLinkGroup').style.display = courseFieldsVisible ? 'block' : 'none';
                 }
             } catch (error) {
                 console.error('Error loading product:', error);
@@ -680,6 +760,41 @@
             }
         }
 
+        // Toggle token quantity field visibility
+        document.getElementById('productProvidesTokens').addEventListener('change', function() {
+            const tokenQuantityGroup = document.getElementById('tokenQuantityGroup');
+            const tokenQuantityInput = document.getElementById('productTokenQuantity');
+            if (this.checked) {
+                tokenQuantityGroup.style.display = 'block';
+                tokenQuantityInput.required = true;
+            } else {
+                tokenQuantityGroup.style.display = 'none';
+                tokenQuantityInput.required = false;
+                tokenQuantityInput.value = '0';
+            }
+        });
+
+        // Toggle course fields visibility
+        document.getElementById('productIsCourse').addEventListener('change', function() {
+            const courseFieldsGroup = document.getElementById('courseFieldsGroup');
+            const courseZoomLinkGroup = document.getElementById('courseZoomLinkGroup');
+            const courseDateInput = document.getElementById('productCourseDate');
+            const courseZoomLinkInput = document.getElementById('productCourseZoomLink');
+            if (this.checked) {
+                courseFieldsGroup.style.display = 'block';
+                courseZoomLinkGroup.style.display = 'block';
+                courseDateInput.required = true;
+                courseZoomLinkInput.required = true;
+            } else {
+                courseFieldsGroup.style.display = 'none';
+                courseZoomLinkGroup.style.display = 'none';
+                courseDateInput.required = false;
+                courseZoomLinkInput.required = false;
+                courseDateInput.value = '';
+                courseZoomLinkInput.value = '';
+            }
+        });
+
         // Form submissions
         document.getElementById('productForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -689,6 +804,36 @@
             const price = parseFloat(document.getElementById('productPrice').value);
             const description = document.getElementById('productDescription').value.trim();
             const is_active = document.getElementById('productIsActive').checked;
+            const provides_tokens = document.getElementById('productProvidesTokens').checked;
+            const token_quantity = provides_tokens ? parseInt(document.getElementById('productTokenQuantity').value) || 0 : 0;
+            const is_course = document.getElementById('productIsCourse').checked;
+            const course_date = is_course ? document.getElementById('productCourseDate').value : null;
+            const course_zoom_link = is_course ? document.getElementById('productCourseZoomLink').value.trim() : null;
+
+            // Validate token quantity if provides_tokens is checked
+            if (provides_tokens && token_quantity <= 0) {
+                showError('productsError', 'Token quantity must be greater than 0 when "Provides Tokens" is enabled');
+                return;
+            }
+
+            // Validate course fields if is_course is checked
+            if (is_course) {
+                if (!course_date) {
+                    showError('productsError', 'Course date is required when "This product is a course" is enabled');
+                    return;
+                }
+                if (!course_zoom_link) {
+                    showError('productsError', 'Zoom link is required when "This product is a course" is enabled');
+                    return;
+                }
+                // Validate URL format
+                try {
+                    new URL(course_zoom_link);
+                } catch (e) {
+                    showError('productsError', 'Please enter a valid Zoom link URL');
+                    return;
+                }
+            }
 
             try {
                 const url = productId ? `/api/admin/products/${productId}` : '/api/admin/products';
@@ -704,7 +849,12 @@
                         name,
                         price,
                         description: description || null,
-                        is_active
+                        is_active,
+                        provides_tokens,
+                        token_quantity,
+                        is_course,
+                        course_date: course_date || null,
+                        course_zoom_link: course_zoom_link || null
                     })
                 });
 

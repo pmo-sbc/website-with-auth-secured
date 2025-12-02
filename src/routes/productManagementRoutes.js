@@ -78,7 +78,7 @@ router.post(
   requireAdmin,
   csrfProtection,
   asyncHandler(async (req, res) => {
-    const { name, price, description } = req.body;
+    const { name, price, description, is_active, provides_tokens, token_quantity, is_course, course_date, course_zoom_link } = req.body;
 
     if (!name || price === undefined) {
       return res.status(400).json({
@@ -94,12 +94,38 @@ router.post(
       });
     }
 
-    const product = productRepository.create(name, price, description || null);
+    if (provides_tokens && (!token_quantity || token_quantity <= 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token quantity must be greater than 0 when provides_tokens is enabled'
+      });
+    }
+
+    if (is_course && (!course_date || !course_zoom_link)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Course date and Zoom link are required when is_course is enabled'
+      });
+    }
+
+    const product = productRepository.create(
+      name, 
+      price, 
+      description || null, 
+      is_active !== undefined ? is_active : true,
+      provides_tokens || false,
+      token_quantity || 0,
+      is_course || false,
+      course_date || null,
+      course_zoom_link || null
+    );
 
     logger.info('Product created', {
       userId: req.session.userId,
       productId: product.id,
-      productName: product.name
+      productName: product.name,
+      provides_tokens: product.provides_tokens,
+      token_quantity: product.token_quantity
     });
 
     res.status(201).json({
@@ -121,7 +147,7 @@ router.put(
   csrfProtection,
   asyncHandler(async (req, res) => {
     const productId = parseInt(req.params.id);
-    const { name, price, description, is_active } = req.body;
+    const { name, price, description, is_active, provides_tokens, token_quantity, is_course, course_date, course_zoom_link } = req.body;
 
     const existingProduct = productRepository.findById(productId);
     if (!existingProduct) {
@@ -138,11 +164,30 @@ router.put(
       });
     }
 
+    if (provides_tokens && (!token_quantity || token_quantity <= 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token quantity must be greater than 0 when provides_tokens is enabled'
+      });
+    }
+
+    if (is_course && (!course_date || !course_zoom_link)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Course date and Zoom link are required when is_course is enabled'
+      });
+    }
+
     const updated = productRepository.update(productId, {
       name: name || existingProduct.name,
       price: price !== undefined ? price : existingProduct.price,
       description: description !== undefined ? description : existingProduct.description,
-      is_active: is_active !== undefined ? is_active : existingProduct.is_active
+      is_active: is_active !== undefined ? is_active : existingProduct.is_active,
+      provides_tokens: provides_tokens !== undefined ? provides_tokens : existingProduct.provides_tokens,
+      token_quantity: token_quantity !== undefined ? token_quantity : existingProduct.token_quantity,
+      is_course: is_course !== undefined ? is_course : existingProduct.is_course,
+      course_date: course_date !== undefined ? course_date : existingProduct.course_date,
+      course_zoom_link: course_zoom_link !== undefined ? course_zoom_link : existingProduct.course_zoom_link
     });
 
     if (!updated) {

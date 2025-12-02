@@ -466,13 +466,35 @@ class EmailService {
   async sendOrderConfirmationEmail(email, customerName, orderData) {
     const subject = 'Order Confirmation - AI Prompt Templates';
 
+    // Get product details to check for courses
+    const productRepository = require('../db/productRepository');
+    const allProducts = productRepository.findAll(true); // Include inactive for lookup
+    const productsMap = new Map(allProducts.map(p => [p.id, p]));
+
+    // Find courses in the order
+    const coursesInOrder = [];
+    orderData.items.forEach(item => {
+      const product = productsMap.get(item.id);
+      if (product && (product.is_course === 1 || product.is_course === true)) {
+        coursesInOrder.push({
+          name: product.name,
+          course_date: product.course_date,
+          course_zoom_link: product.course_zoom_link
+        });
+      }
+    });
+
     // Format order items
     const orderItemsHtml = orderData.items.map(item => {
       const itemTotal = (item.finalPrice !== undefined ? item.finalPrice : item.price) * (item.quantity || 1);
+      const product = productsMap.get(item.id);
+      const isCourse = product && (product.is_course === 1 || product.is_course === true);
       return `
         <tr style="border-bottom: 1px solid #e0e0e0;">
           <td style="padding: 15px; text-align: left;">
-            <strong>${item.name}</strong><br>
+            <strong>${item.name}</strong>
+            ${isCourse ? ' <span style="background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600;">📚 Course</span>' : ''}
+            <br>
             <span style="color: #666; font-size: 0.9em;">Quantity: ${item.quantity || 1} × ${this.formatCurrency(item.price)}</span>
           </td>
           <td style="padding: 15px; text-align: right; font-weight: 600;">
@@ -481,6 +503,67 @@ class EmailService {
         </tr>
       `;
     }).join('');
+
+    // Build course information section
+    let courseSectionHtml = '';
+    if (coursesInOrder.length > 0) {
+      const coursesPageUrl = `${this.baseUrl}/courses`;
+      const courseDetailsHtml = coursesInOrder.map(course => {
+        let courseInfo = '';
+        
+        if (course.course_date) {
+          const courseDate = new Date(course.course_date);
+          const courseDateStr = courseDate.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+          });
+          courseInfo += `
+            <div style="margin: 10px 0;">
+              <strong>📅 Course Date & Time:</strong><br>
+              <span style="color: #2c5aa0; font-size: 1.1em;">${courseDateStr}</span>
+            </div>
+          `;
+        }
+        
+        if (course.course_zoom_link) {
+          courseInfo += `
+            <div style="margin: 10px 0;">
+              <strong>🔗 Zoom Meeting Link:</strong><br>
+              <a href="${course.course_zoom_link}" style="color: #3498db; text-decoration: none; word-break: break-all; font-size: 1.1em;">${course.course_zoom_link}</a>
+            </div>
+          `;
+        }
+        
+        return `
+          <div style="background: #e3f2fd; border-left: 4px solid #3498db; padding: 15px; margin: 15px 0; border-radius: 5px;">
+            <h3 style="margin: 0 0 10px 0; color: #2c5aa0;">${course.name}</h3>
+            ${courseInfo}
+          </div>
+        `;
+      }).join('');
+
+      courseSectionHtml = `
+        <div style="background: #f0f7ff; border: 2px solid #3498db; border-radius: 8px; padding: 20px; margin: 30px 0;">
+          <h2 style="color: #2c5aa0; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+            📚 Course Access Information
+          </h2>
+          <p style="margin-bottom: 15px;">Great news! You've purchased course(s) in this order. Here are the details:</p>
+          ${courseDetailsHtml}
+          <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #b3d9ff;">
+            <a href="${coursesPageUrl}" style="display: inline-block; padding: 12px 30px; background: #3498db; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1em;">
+              View All My Courses →
+            </a>
+          </div>
+          <p style="margin-top: 15px; margin-bottom: 0; font-size: 0.9em; color: #666;">
+            You can also access all your courses anytime by visiting your <a href="${coursesPageUrl}" style="color: #3498db;">Courses page</a>.
+          </p>
+        </div>
+      `;
+    }
 
     const html = `
       <!DOCTYPE html>
@@ -621,6 +704,8 @@ class EmailService {
               <span>${this.formatCurrency(orderData.total || 0)}</span>
             </div>
           </div>
+
+          ${courseSectionHtml}
 
           <p><strong>What's Next?</strong></p>
           <p>Your order is being processed and you'll receive your product details shortly. If you have any questions about your order, please don't hesitate to contact us.</p>
