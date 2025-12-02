@@ -15,69 +15,54 @@ function checkAuth() {
         // User is logged in - show dashboard and logout with username and tokens
         const tokens = user.tokens !== undefined ? user.tokens : '...';
         
-        // Check if Product link already exists to avoid unnecessary updates
-        const existingProductLink = navMenu.querySelector('a[href="/product"]');
-        const needsUpdate = !existingProductLink || 
-                           !navMenu.querySelector('a[href="/product"]') ||
-                           navMenu.querySelectorAll('li').length < 5;
-        
-        if (needsUpdate) {
-            navMenu.innerHTML = `
-                <li><a href="/">Home</a></li>
-                <li><a href="/product">Product</a></li>
-                <li><a href="/templates.html">Prompt Studio</a></li>
-                <li><a href="/dashboard">My Vault</a></li>
-                <li><a href="/profile">Profile</a></li>
-                <li id="adminMenuLink" style="display: none;"><a href="/admin/users">User Management</a></li>
-                <li id="adminProductsLink" style="display: none;"><a href="/admin/products">Product Management</a></li>
-                <li style="color: #a1a1aa; display: flex; align-items: center; padding: 0 1rem;">Welcome, ${user.name} | 🪙 ${tokens} tokens</li>
-                <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
-            `;
+        // Always update the menu for logged-in users to ensure all links are present
+        navMenu.innerHTML = `
+            <li><a href="/">Home</a></li>
+            <li><a href="/product">Product</a></li>
+            <li><a href="/templates.html">Prompt Studio</a></li>
+            <li><a href="/dashboard">My Vault</a></li>
+            <li><a href="/profile">Profile</a></li>
+            <li id="adminMenuLink" style="display: none;"><a href="/admin/users">User Management</a></li>
+            <li id="adminProductsLink" style="display: none;"><a href="/admin/products">Product Management</a></li>
+            <li style="color: #a1a1aa; display: flex; align-items: center; padding: 0 1rem;">Welcome, ${user.name} | 🪙 ${tokens} tokens</li>
+            <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
+        `;
 
-            // Show admin menu if user is admin
-            if (user.is_admin) {
-                const adminLink = document.getElementById('adminMenuLink');
-                if (adminLink) {
-                    adminLink.style.display = 'list-item';
-                }
-                const adminProductsLink = document.getElementById('adminProductsLink');
-                if (adminProductsLink) {
-                    adminProductsLink.style.display = 'list-item';
-                }
+        // Show admin menu if user is admin
+        if (user.is_admin) {
+            const adminLink = document.getElementById('adminMenuLink');
+            if (adminLink) {
+                adminLink.style.display = 'list-item';
             }
+            const adminProductsLink = document.getElementById('adminProductsLink');
+            if (adminProductsLink) {
+                adminProductsLink.style.display = 'list-item';
+            }
+        }
 
-            // Add logout handler
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
-                // Remove any existing listeners by cloning
-                const newLogoutBtn = logoutBtn.cloneNode(true);
-                logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
-                newLogoutBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    logout();
-                });
-            }
-        } else {
-            // Just ensure Product link exists
-            ensureProductLink();
+        // Add logout handler
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            // Remove any existing listeners by cloning
+            const newLogoutBtn = logoutBtn.cloneNode(true);
+            logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+            newLogoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                logout();
+            });
         }
 
         // Add cart link if cart.js is available
         addCartLinkToNav();
     } else {
-        // User is not logged in - show login and signup only
-        const existingProductLink = navMenu.querySelector('a[href="/product"]');
-        if (!existingProductLink) {
-            navMenu.innerHTML = `
-                <li><a href="/">Home</a></li>
-                <li><a href="/product">Product</a></li>
-                <li><a href="/login">Login</a></li>
-                <li><a href="/signup" class="btn-primary">Sign Up</a></li>
-            `;
-        } else {
-            // Just ensure Product link exists
-            ensureProductLink();
-        }
+        // User is not logged in - show login and signup
+        // Always update the menu for non-logged-in users to ensure all links are present
+        navMenu.innerHTML = `
+            <li><a href="/">Home</a></li>
+            <li><a href="/product">Product</a></li>
+            <li><a href="/login">Login</a></li>
+            <li><a href="/signup" class="btn-primary">Sign Up</a></li>
+        `;
         
         // Add cart link if cart.js is available
         addCartLinkToNav();

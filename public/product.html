@@ -31,6 +31,13 @@
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 2rem;
             margin-bottom: 3rem;
+            justify-content: center;
+        }
+
+        /* Center single product */
+        .products-grid:has(> :only-child) {
+            grid-template-columns: minmax(300px, 400px);
+            justify-content: center;
         }
 
         .product-card {
@@ -397,6 +404,12 @@
                     PRODUCTS = data.products;
                     renderProducts();
                     gridEl.style.display = 'grid';
+                    
+                    // Center single product
+                    if (PRODUCTS.length === 1) {
+                        gridEl.style.gridTemplateColumns = 'minmax(300px, 400px)';
+                        gridEl.style.justifyContent = 'center';
+                    }
                 } else {
                     showError('No products available');
                 }
