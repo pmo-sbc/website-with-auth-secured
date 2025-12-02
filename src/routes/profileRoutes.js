@@ -292,8 +292,19 @@ router.get(
       });
     }
 
-    // Get customer info if available
-    const customerInfo = userRepository.getCustomerInfo(userId);
+    // Get customer info if available (handle gracefully if columns don't exist)
+    let customerInfo = null;
+    try {
+      customerInfo = userRepository.getCustomerInfo(userId);
+    } catch (error) {
+      // If customer info columns don't exist, log warning but don't fail
+      logger.warn('Failed to get customer info (columns may not exist)', {
+        userId,
+        error: error.message
+      });
+      // Return null - the profile page will still work without customer info
+      customerInfo = null;
+    }
 
     res.json({
       user: {
