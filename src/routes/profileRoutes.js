@@ -292,14 +292,103 @@ router.get(
       });
     }
 
+    // Get customer info if available
+    const customerInfo = userRepository.getCustomerInfo(userId);
+
     res.json({
       user: {
         username: user.username,
         email: user.email,
         created_at: user.created_at,
         email_verified: user.email_verified,
-        tokens: user.tokens
-      }
+        tokens: user.tokens,
+        is_admin: user.is_admin
+      },
+      customerInfo: customerInfo || null
+    });
+  })
+);
+
+/**
+ * GET /api/profile/customer-info
+ * Get customer information for checkout
+ */
+router.get(
+  '/api/profile/customer-info',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+
+    const customerInfo = userRepository.getCustomerInfo(userId);
+
+    if (!customerInfo) {
+      return res.json({
+        customerInfo: null
+      });
+    }
+
+    res.json({
+      customerInfo
+    });
+  })
+);
+
+/**
+ * POST /api/profile/customer-info
+ * Save customer information
+ */
+router.post(
+  '/api/profile/customer-info',
+  requireAuth,
+  csrfProtection,
+  asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const {
+      firstName,
+      lastName,
+      phone,
+      address,
+      city,
+      state,
+      zipCode,
+      country
+    } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !phone || !address || !city || !state || !zipCode || !country) {
+      return res.status(400).json({
+        error: 'All fields are required'
+      });
+    }
+
+    // Update customer info
+    const updated = userRepository.updateCustomerInfo(userId, {
+      firstName,
+      lastName,
+      phone,
+      address,
+      city,
+      state,
+      zipCode,
+      country
+    });
+
+    if (!updated) {
+      return res.status(500).json({
+        error: 'Failed to update customer information'
+      });
+    }
+
+    logger.info('Customer information updated', {
+      userId
+    });
+
+    // Log profile update activity
+    logManualActivity(req, ActivityTypes.PROFILE_UPDATE, 'user', userId, { action: 'customer_info_update' });
+
+    res.json({
+      success: true,
+      message: 'Customer information saved successfully'
     });
   })
 );

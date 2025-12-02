@@ -45,6 +45,10 @@ const adminTemplateRoutes = require('./src/routes/adminTemplateRoutes');
 const healthRoutes = require('./src/routes/healthRoutes');
 const activityLogRoutes = require('./src/routes/activityLogRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
+const orderRoutes = require('./src/routes/orderRoutes');
+const productManagementRoutes = require('./src/routes/productManagementRoutes');
+const discountCodeManagementRoutes = require('./src/routes/discountCodeManagementRoutes');
+const publicProductRoutes = require('./src/routes/publicProductRoutes');
 
 // Initialize Express app
 const app = express();
@@ -142,6 +146,25 @@ app.get('/api-docs.json', (req, res) => {
   res.send(swaggerSpec);
 });
 
+// Public config endpoints
+app.get('/api/config/stripe-test-mode', (req, res) => {
+  res.json({ isTestMode: config.stripe.testMode });
+});
+
+app.get('/api/config/stripe-publishable-key', (req, res) => {
+  res.json({ 
+    publishableKey: config.stripe.publishableKey || '',
+    testMode: config.stripe.testMode 
+  });
+});
+
+app.get('/api/config/paypal-client-id', (req, res) => {
+  res.json({ 
+    clientId: config.paypal.clientId || '',
+    sandboxMode: config.paypal.sandboxMode 
+  });
+});
+
 // API routes
 app.use('/api/prompts', promptRoutes);
 app.use('/api/usage', statsRoutes);
@@ -151,6 +174,10 @@ app.use('/api', generatePromptRoutes);
 app.use('/api', projectRoutes);
 app.use('/api/activity', activityLogRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api', orderRoutes);
+app.use('/', publicProductRoutes);
+app.use('/', productManagementRoutes);
+app.use('/', discountCodeManagementRoutes);
 
 // ===== ERROR HANDLING =====
 

@@ -345,6 +345,77 @@ class UserRepository {
       throw error;
     }
   }
+
+  /**
+   * Update customer information
+   */
+  updateCustomerInfo(userId, customerData) {
+    const db = getDatabase();
+    const query = `
+      UPDATE users 
+      SET first_name = ?,
+          last_name = ?,
+          phone = ?,
+          address = ?,
+          city = ?,
+          state = ?,
+          zip_code = ?,
+          country = ?
+      WHERE id = ?
+    `;
+
+    try {
+      logger.db('UPDATE', 'users', { userId, action: 'update_customer_info' });
+      const result = db.prepare(query).run(
+        customerData.firstName || null,
+        customerData.lastName || null,
+        customerData.phone || null,
+        customerData.address || null,
+        customerData.city || null,
+        customerData.state || null,
+        customerData.zipCode || null,
+        customerData.country || null,
+        userId
+      );
+      return result.changes > 0;
+    } catch (error) {
+      logger.error('Error updating customer info', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get customer information
+   */
+  getCustomerInfo(userId) {
+    const db = getDatabase();
+    const query = `
+      SELECT first_name, last_name, phone, address, city, state, zip_code, country, email
+      FROM users 
+      WHERE id = ?
+    `;
+
+    try {
+      logger.db('SELECT', 'users', { userId, action: 'get_customer_info' });
+      const result = db.prepare(query).get(userId);
+      if (!result) return null;
+      
+      return {
+        firstName: result.first_name || null,
+        lastName: result.last_name || null,
+        phone: result.phone || null,
+        address: result.address || null,
+        city: result.city || null,
+        state: result.state || null,
+        zipCode: result.zip_code || null,
+        country: result.country || null,
+        email: result.email || null
+      };
+    } catch (error) {
+      logger.error('Error getting customer info', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new UserRepository();

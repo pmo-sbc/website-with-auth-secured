@@ -133,6 +133,51 @@ function createTables() {
       FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
     );
 
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      order_number TEXT UNIQUE NOT NULL,
+      customer_first_name TEXT,
+      customer_last_name TEXT,
+      customer_email TEXT NOT NULL,
+      customer_phone TEXT,
+      customer_address TEXT,
+      customer_city TEXT,
+      customer_state TEXT,
+      customer_zip_code TEXT,
+      customer_country TEXT,
+      items JSON NOT NULL,
+      subtotal REAL NOT NULL,
+      discount REAL DEFAULT 0,
+      total REAL NOT NULL,
+      payment_method TEXT,
+      discount_code_id INTEGER,
+      status TEXT DEFAULT 'completed',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+      FOREIGN KEY (discount_code_id) REFERENCES discount_codes (id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      price REAL NOT NULL,
+      description TEXT,
+      is_active BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS discount_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      discount_percentage REAL NOT NULL,
+      is_active BOOLEAN DEFAULT 1,
+      usage_count INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_saved_prompts_user_id ON saved_prompts(user_id);
     CREATE INDEX IF NOT EXISTS idx_saved_prompts_project_id ON saved_prompts(project_id);
     CREATE INDEX IF NOT EXISTS idx_usage_stats_user_id ON usage_stats(user_id);
@@ -146,6 +191,13 @@ function createTables() {
     CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
     CREATE INDEX IF NOT EXISTS idx_activity_logs_action ON activity_logs(action);
     CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+    CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);
+    CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+    CREATE INDEX IF NOT EXISTS idx_orders_discount_code_id ON orders(discount_code_id);
+    CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
+    CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code);
+    CREATE INDEX IF NOT EXISTS idx_discount_codes_is_active ON discount_codes(is_active);
   `;
 
   db.exec(schema);

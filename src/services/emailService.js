@@ -459,6 +459,196 @@ class EmailService {
 
     return await this.sendEmail(email, subject, html);
   }
+
+  /**
+   * Send order confirmation email
+   */
+  async sendOrderConfirmationEmail(email, customerName, orderData) {
+    const subject = 'Order Confirmation - AI Prompt Templates';
+
+    // Format order items
+    const orderItemsHtml = orderData.items.map(item => {
+      const itemTotal = (item.finalPrice !== undefined ? item.finalPrice : item.price) * (item.quantity || 1);
+      return `
+        <tr style="border-bottom: 1px solid #e0e0e0;">
+          <td style="padding: 15px; text-align: left;">
+            <strong>${item.name}</strong><br>
+            <span style="color: #666; font-size: 0.9em;">Quantity: ${item.quantity || 1} × ${this.formatCurrency(item.price)}</span>
+          </td>
+          <td style="padding: 15px; text-align: right; font-weight: 600;">
+            ${this.formatCurrency(itemTotal)}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .container {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 30px;
+            margin-top: 20px;
+          }
+          .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #2ecc71;
+          }
+          .logo {
+            width: 60px;
+            height: 60px;
+            background: #2ecc71;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 10px;
+          }
+          h1 {
+            color: #2ecc71;
+            margin: 10px 0;
+          }
+          .success-badge {
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            color: #2e7d32;
+            font-weight: 600;
+          }
+          .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+          }
+          .order-table th {
+            background: #f5f5f5;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+          }
+          .order-summary {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .summary-row.total {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #2ecc71;
+            border-top: 2px solid #2ecc71;
+            margin-top: 10px;
+            padding-top: 15px;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">✓</div>
+            <h1>Order Confirmation</h1>
+          </div>
+
+          <p>Hi ${customerName},</p>
+
+          <div class="success-badge">
+            🎉 Your payment was successful! Thank you for your purchase.
+          </div>
+
+          <p>We're excited to confirm your order. Here's what you've purchased:</p>
+
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th style="text-align: right;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orderItemsHtml}
+            </tbody>
+          </table>
+
+          <div class="order-summary">
+            <div class="summary-row">
+              <span>Subtotal:</span>
+              <span>${this.formatCurrency(orderData.subtotal || 0)}</span>
+            </div>
+            ${orderData.discount && orderData.discount > 0 ? `
+            <div class="summary-row">
+              <span>Discount:</span>
+              <span>-${this.formatCurrency(orderData.discount)}</span>
+            </div>
+            ` : ''}
+            <div class="summary-row total">
+              <span>Total Paid:</span>
+              <span>${this.formatCurrency(orderData.total || 0)}</span>
+            </div>
+          </div>
+
+          <p><strong>What's Next?</strong></p>
+          <p>Your order is being processed and you'll receive your product details shortly. If you have any questions about your order, please don't hesitate to contact us.</p>
+
+          <p>Thank you for choosing AI Prompt Templates!</p>
+          <p><strong>The AI Prompt Templates Team</strong></p>
+
+          <div class="footer">
+            <p>This is an automated email. Please do not reply.</p>
+            <p>AI Prompt Templates - Professional AI Prompt Generation</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await this.sendEmail(email, subject, html);
+  }
+
+  /**
+   * Format currency
+   */
+  formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  }
 }
 
 module.exports = new EmailService();

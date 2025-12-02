@@ -1,0 +1,221 @@
+/**
+ * Discount Code Management Routes (Admin Only)
+ * Handles CRUD operations for discount codes
+ */
+
+const express = require('express');
+const discountCodeRepository = require('../db/discountCodeRepository');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { asyncHandler } = require('../middleware/errorHandler');
+const { configureCsrf } = require('../middleware/security');
+const logger = require('../utils/logger');
+
+const router = express.Router();
+const csrfProtection = configureCsrf();
+
+/**
+ * GET /api/admin/discount-codes
+ * Get all discount codes (admin only)
+ */
+router.get(
+  '/api/admin/discount-codes',
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const includeInactive = req.query.includeInactive === 'true';
+    const discountCodes = discountCodeRepository.findAll(includeInactive);
+
+    res.json({
+      success: true,
+      discountCodes
+    });
+  })
+);
+
+/**
+ * GET /api/admin/discount-codes/:id
+ * Get a single discount code (admin only)
+ */
+router.get(
+  '/api/admin/discount-codes/:id',
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const discountCode = discountCodeRepository.findById(parseInt(req.params.id));
+    
+    if (!discountCode) {
+      return res.status(404).json({
+        success: false,
+        error: 'Discount code not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      discountCode
+    });
+  })
+);
+
+/**
+ * POST /api/admin/discount-codes
+ * Create a new discount code (admin only)
+ */
+router.post(
+  '/api/admin/discount-codes',
+  requireAuth,
+  requireAdmin,
+  csrfProtection,
+  asyncHandler(async (req, res) => {
+    const { code, discount_percentage } = req.body;
+
+    if (!code || discount_percentage === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'Code and discount_percentage are required'
+      });
+    }
+
+    if (typeof discount_percentage !== 'number' || discount_percentage < 0 || discount_percentage > 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Discount percentage must be between 0 and 100'
+      });
+    }
+
+    // Check if code already exists
+    const existing = discountCodeRepository.findByCode(code);
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        error: 'Discount code already exists'
+      });
+    }
+
+    const discountCode = discountCodeRepository.create(code, discount_percentage);
+
+    logger.info('Discount code created', {
+      userId: req.session.userId,
+      discountCodeId: discountCode.id,
+      code: discountCode.code
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Discount code created successfully',
+      discountCode
+    });
+  })
+);
+
+/**
+ * PUT /api/admin/discount-codes/:id
+ * Update a discount code (admin only)
+ */
+router.put(
+  '/api/admin/discount-codes/:id',
+  requireAuth,
+  requireAdmin,
+  csrfProtection,
+  asyncHandler(async (req, res) => {
+    const discountCodeId = parseInt(req.params.id);
+    const { code, discount_percentage, is_active } = req.body;
+
+    const existingDiscountCode = discountCodeRepository.findById(discountCodeId);
+    if (!existingDiscountCode) {
+      return res.status(404).json({
+        success: false,
+        error: 'Discount code not found'
+      });
+    }
+
+    if (discount_percentage !== undefined && (typeof discount_percentage !== 'number' || discount_percentage < 0 || discount_percentage > 100)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Discount percentage must be between 0 and 100'
+      });
+    }
+
+    // Check if new code conflicts with existing code
+    if (code && code.toUpperCase() !== existingDiscountCode.code) {
+      const existing = discountCodeRepository.findByCode(code);
+      if (existing && existing.id !== discountCodeId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Discount code already exists'
+        });
+      }
+    }
+
+    const updated = discountCodeRepository.update(discountCodeId, {
+      code: code || existingDiscountCode.code,
+      discountPercentage: discount_percentage !== undefined ? discount_percentage : existingDiscountCode.discount_percentage,
+      is_active: is_active !== undefined ? is_active : existingDiscountCode.is_active
+    });
+
+    if (!updated) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update discount code'
+      });
+    }
+
+    logger.info('Discount code updated', {
+      userId: req.session.userId,
+      discountCodeId,
+      changes: req.body
+    });
+
+    const updatedDiscountCode = discountCodeRepository.findById(discountCodeId);
+    res.json({
+      success: true,
+      message: 'Discount code updated successfully',
+      discountCode: updatedDiscountCode
+    });
+  })
+);
+
+/**
+ * DELETE /api/admin/discount-codes/:id
+ * Delete a discount code (admin only)
+ */
+router.delete(
+  '/api/admin/discount-codes/:id',
+  requireAuth,
+  requireAdmin,
+  csrfProtection,
+  asyncHandler(async (req, res) => {
+    const discountCodeId = parseInt(req.params.id);
+
+    const discountCode = discountCodeRepository.findById(discountCodeId);
+    if (!discountCode) {
+      return res.status(404).json({
+        success: false,
+        error: 'Discount code not found'
+      });
+    }
+
+    const deleted = discountCodeRepository.delete(discountCodeId);
+
+    if (!deleted) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete discount code'
+      });
+    }
+
+    logger.info('Discount code deleted', {
+      userId: req.session.userId,
+      discountCodeId,
+      code: discountCode.code
+    });
+
+    res.json({
+      success: true,
+      message: 'Discount code deleted successfully'
+    });
+  })
+);
+
+module.exports = router;
+

@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management - AI Prompt Templates</title>
+    <link rel="icon" type="image/jpeg" href="/images/3rd-logo.jpeg">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="/js/csrf-helper.js"></script>
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .admin-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .btn-primary {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            color: var(--secondary-color);
+            border: 1px solid var(--secondary-color);
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-danger {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-danger:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--dark-bg);
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr:hover {
+            background: var(--dark-bg);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-active {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-inactive {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .error-message {
+            background: #ffe6e6;
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #e6ffe6;
+            border: 1px solid #27ae60;
+            color: #27ae60;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-circle">
+                    <img src="images/3rd-logo.jpeg" alt="3rd Rock Ads Logo">
+                </div>
+            </a>
+            <ul class="nav-menu">
+                <!-- Navigation will be dynamically updated by auth.js -->
+            </ul>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>🛍️ Product Management</h1>
+            <p>Manage products and discount codes</p>
+        </div>
+
+        <!-- Products Section -->
+        <div class="admin-section">
+            <div class="section-header">
+                <h2>Products</h2>
+                <button class="btn-primary" id="addProductBtn">+ Add Product</button>
+            </div>
+
+            <div id="productsError" class="error-message"></div>
+            <div id="productsSuccess" class="success-message"></div>
+
+            <div id="productsLoading" class="loading">Loading products...</div>
+            <div id="productsTableContainer" class="table-container" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Description</th>
+                            <th>Purchases</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <!-- Products will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Discount Codes Section -->
+        <div class="admin-section">
+            <div class="section-header">
+                <h2>Discount Codes</h2>
+                <button class="btn-primary" id="addDiscountCodeBtn">+ Add Discount Code</button>
+            </div>
+
+            <div id="discountCodesError" class="error-message"></div>
+            <div id="discountCodesSuccess" class="success-message"></div>
+
+            <div id="discountCodesLoading" class="loading">Loading discount codes...</div>
+            <div id="discountCodesTableContainer" class="table-container" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Code</th>
+                            <th>Discount %</th>
+                            <th>Usage Count</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="discountCodesTableBody">
+                        <!-- Discount codes will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="productModalTitle">Add Product</h3>
+                <button class="close-modal" id="closeProductModalBtn">&times;</button>
+            </div>
+            <form id="productForm">
+                <input type="hidden" id="productId">
+                <div class="form-group">
+                    <label class="form-label" for="productName">Product Name *</label>
+                    <input type="text" id="productName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="productPrice">Price ($) *</label>
+                    <input type="number" id="productPrice" class="form-input" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="productDescription">Description</label>
+                    <textarea id="productDescription" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="productIsActive" checked> Active
+                    </label>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save</button>
+                    <button type="button" class="btn-secondary" id="cancelProductBtn" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Discount Code Modal -->
+    <div id="discountCodeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="discountCodeModalTitle">Add Discount Code</h3>
+                <button class="close-modal" id="closeDiscountCodeModalBtn">&times;</button>
+            </div>
+            <form id="discountCodeForm">
+                <input type="hidden" id="discountCodeId">
+                <div class="form-group">
+                    <label class="form-label" for="discountCode">Code *</label>
+                    <input type="text" id="discountCode" class="form-input" required style="text-transform: uppercase;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="discountPercentage">Discount Percentage (%) *</label>
+                    <input type="number" id="discountPercentage" class="form-input" step="0.01" min="0" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="discountCodeIsActive" checked> Active
+                    </label>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Save</button>
+                    <button type="button" class="btn-secondary" id="cancelDiscountCodeBtn" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/session-manager.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cart.js"></script>
+    <script>
+        // Load products
+        async function loadProducts() {
+            const loadingEl = document.getElementById('productsLoading');
+            const tableContainer = document.getElementById('productsTableContainer');
+            const tableBody = document.getElementById('productsTableBody');
+            const errorEl = document.getElementById('productsError');
+
+            try {
+                loadingEl.style.display = 'block';
+                tableContainer.style.display = 'none';
+                errorEl.classList.remove('show');
+
+                const response = await fetch('/api/admin/products?includeInactive=true', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load products');
+                }
+
+                const data = await response.json();
+                loadingEl.style.display = 'none';
+
+                if (!data.success || !data.products || data.products.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No products found</td></tr>';
+                    tableContainer.style.display = 'block';
+                    return;
+                }
+
+                tableBody.innerHTML = data.products.map(product => `
+                    <tr>
+                        <td>${product.id}</td>
+                        <td>${escapeHtml(product.name)}</td>
+                        <td>$${product.price.toFixed(2)}</td>
+                        <td>${escapeHtml(product.description || '')}</td>
+                        <td>${product.purchase_count || 0}</td>
+                        <td>
+                            <span class="badge ${product.is_active ? 'badge-active' : 'badge-inactive'}">
+                                ${product.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td class="actions-cell">
+                            <button class="btn-secondary edit-product-btn" data-product-id="${product.id}">Edit</button>
+                            <button class="btn-danger delete-product-btn" data-product-id="${product.id}" data-product-name="${escapeHtml(product.name)}">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                tableContainer.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading products:', error);
+                loadingEl.style.display = 'none';
+                errorEl.textContent = 'Failed to load products. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+
+        // Load discount codes
+        async function loadDiscountCodes() {
+            const loadingEl = document.getElementById('discountCodesLoading');
+            const tableContainer = document.getElementById('discountCodesTableContainer');
+            const tableBody = document.getElementById('discountCodesTableBody');
+            const errorEl = document.getElementById('discountCodesError');
+
+            try {
+                loadingEl.style.display = 'block';
+                tableContainer.style.display = 'none';
+                errorEl.classList.remove('show');
+
+                const response = await fetch('/api/admin/discount-codes?includeInactive=true', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load discount codes');
+                }
+
+                const data = await response.json();
+                loadingEl.style.display = 'none';
+
+                if (!data.success || !data.discountCodes || data.discountCodes.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No discount codes found</td></tr>';
+                    tableContainer.style.display = 'block';
+                    return;
+                }
+
+                tableBody.innerHTML = data.discountCodes.map(dc => `
+                    <tr>
+                        <td>${dc.id}</td>
+                        <td><strong>${escapeHtml(dc.code)}</strong></td>
+                        <td>${dc.discount_percentage.toFixed(2)}%</td>
+                        <td>${dc.usage_count || 0}</td>
+                        <td>
+                            <span class="badge ${dc.is_active ? 'badge-active' : 'badge-inactive'}">
+                                ${dc.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td class="actions-cell">
+                            <button class="btn-secondary edit-discount-code-btn" data-discount-code-id="${dc.id}">Edit</button>
+                            <button class="btn-danger delete-discount-code-btn" data-discount-code-id="${dc.id}" data-discount-code="${escapeHtml(dc.code)}">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                tableContainer.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading discount codes:', error);
+                loadingEl.style.display = 'none';
+                errorEl.textContent = 'Failed to load discount codes. Please try again.';
+                errorEl.classList.add('show');
+            }
+        }
+
+        // Product modal functions
+        function openProductModal(productId = null) {
+            const modal = document.getElementById('productModal');
+            const form = document.getElementById('productForm');
+            const title = document.getElementById('productModalTitle');
+            
+            form.reset();
+            document.getElementById('productId').value = '';
+            document.getElementById('productIsActive').checked = true;
+
+            if (productId) {
+                title.textContent = 'Edit Product';
+                loadProductForEdit(productId);
+            } else {
+                title.textContent = 'Add Product';
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').classList.remove('active');
+        }
+
+        async function loadProductForEdit(productId) {
+            try {
+                const response = await fetch(`/api/admin/products/${productId}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load product');
+                }
+
+                const data = await response.json();
+                if (data.success && data.product) {
+                    const p = data.product;
+                    document.getElementById('productId').value = p.id;
+                    document.getElementById('productName').value = p.name;
+                    document.getElementById('productPrice').value = p.price;
+                    document.getElementById('productDescription').value = p.description || '';
+                    document.getElementById('productIsActive').checked = p.is_active;
+                }
+            } catch (error) {
+                console.error('Error loading product:', error);
+                showError('productsError', 'Failed to load product details');
+            }
+        }
+
+        // Discount code modal functions
+        function openDiscountCodeModal(discountCodeId = null) {
+            const modal = document.getElementById('discountCodeModal');
+            const form = document.getElementById('discountCodeForm');
+            const title = document.getElementById('discountCodeModalTitle');
+            
+            form.reset();
+            document.getElementById('discountCodeId').value = '';
+            document.getElementById('discountCodeIsActive').checked = true;
+
+            if (discountCodeId) {
+                title.textContent = 'Edit Discount Code';
+                loadDiscountCodeForEdit(discountCodeId);
+            } else {
+                title.textContent = 'Add Discount Code';
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeDiscountCodeModal() {
+            document.getElementById('discountCodeModal').classList.remove('active');
+        }
+
+        async function loadDiscountCodeForEdit(discountCodeId) {
+            try {
+                const response = await fetch(`/api/admin/discount-codes/${discountCodeId}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load discount code');
+                }
+
+                const data = await response.json();
+                if (data.success && data.discountCode) {
+                    const dc = data.discountCode;
+                    document.getElementById('discountCodeId').value = dc.id;
+                    document.getElementById('discountCode').value = dc.code;
+                    document.getElementById('discountPercentage').value = dc.discount_percentage;
+                    document.getElementById('discountCodeIsActive').checked = dc.is_active;
+                }
+            } catch (error) {
+                console.error('Error loading discount code:', error);
+                showError('discountCodesError', 'Failed to load discount code details');
+            }
+        }
+
+        // Edit functions
+        function editProduct(id) {
+            openProductModal(id);
+        }
+
+        function editDiscountCode(id) {
+            openDiscountCodeModal(id);
+        }
+
+        // Delete functions
+        async function deleteProduct(id, name) {
+            if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithCsrf(`/api/admin/products/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccess('productsSuccess', 'Product deleted successfully');
+                    loadProducts();
+                } else {
+                    throw new Error(data.error || 'Failed to delete product');
+                }
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                showError('productsError', 'Failed to delete product. Please try again.');
+            }
+        }
+
+        async function deleteDiscountCode(id, code) {
+            if (!confirm(`Are you sure you want to delete discount code "${code}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithCsrf(`/api/admin/discount-codes/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccess('discountCodesSuccess', 'Discount code deleted successfully');
+                    loadDiscountCodes();
+                } else {
+                    throw new Error(data.error || 'Failed to delete discount code');
+                }
+            } catch (error) {
+                console.error('Error deleting discount code:', error);
+                showError('discountCodesError', 'Failed to delete discount code. Please try again.');
+            }
+        }
+
+        // Form submissions
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const productId = document.getElementById('productId').value;
+            const name = document.getElementById('productName').value.trim();
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const description = document.getElementById('productDescription').value.trim();
+            const is_active = document.getElementById('productIsActive').checked;
+
+            try {
+                const url = productId ? `/api/admin/products/${productId}` : '/api/admin/products';
+                const method = productId ? 'PUT' : 'POST';
+
+                const response = await fetchWithCsrf(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        name,
+                        price,
+                        description: description || null,
+                        is_active
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccess('productsSuccess', productId ? 'Product updated successfully' : 'Product created successfully');
+                    closeProductModal();
+                    loadProducts();
+                } else {
+                    throw new Error(data.error || 'Failed to save product');
+                }
+            } catch (error) {
+                console.error('Error saving product:', error);
+                showError('productsError', 'Failed to save product. Please try again.');
+            }
+        });
+
+        document.getElementById('discountCodeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const discountCodeId = document.getElementById('discountCodeId').value;
+            const code = document.getElementById('discountCode').value.trim().toUpperCase();
+            const discount_percentage = parseFloat(document.getElementById('discountPercentage').value);
+            const is_active = document.getElementById('discountCodeIsActive').checked;
+
+            try {
+                const url = discountCodeId ? `/api/admin/discount-codes/${discountCodeId}` : '/api/admin/discount-codes';
+                const method = discountCodeId ? 'PUT' : 'POST';
+
+                const response = await fetchWithCsrf(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        code,
+                        discount_percentage,
+                        is_active
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccess('discountCodesSuccess', discountCodeId ? 'Discount code updated successfully' : 'Discount code created successfully');
+                    closeDiscountCodeModal();
+                    loadDiscountCodes();
+                } else {
+                    throw new Error(data.error || 'Failed to save discount code');
+                }
+            } catch (error) {
+                console.error('Error saving discount code:', error);
+                showError('discountCodesError', 'Failed to save discount code. Please try again.');
+            }
+        });
+
+        // Utility functions
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        function showSuccess(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close modals on outside click
+        document.getElementById('productModal').addEventListener('click', (e) => {
+            if (e.target.id === 'productModal') {
+                closeProductModal();
+            }
+        });
+
+        document.getElementById('discountCodeModal').addEventListener('click', (e) => {
+            if (e.target.id === 'discountCodeModal') {
+                closeDiscountCodeModal();
+            }
+        });
+
+        // Event listeners for buttons
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add Product button
+            const addProductBtn = document.getElementById('addProductBtn');
+            if (addProductBtn) {
+                addProductBtn.addEventListener('click', () => openProductModal());
+            }
+
+            // Add Discount Code button
+            const addDiscountCodeBtn = document.getElementById('addDiscountCodeBtn');
+            if (addDiscountCodeBtn) {
+                addDiscountCodeBtn.addEventListener('click', () => openDiscountCodeModal());
+            }
+
+            // Close Product Modal buttons
+            const closeProductModalBtn = document.getElementById('closeProductModalBtn');
+            if (closeProductModalBtn) {
+                closeProductModalBtn.addEventListener('click', closeProductModal);
+            }
+
+            const cancelProductBtn = document.getElementById('cancelProductBtn');
+            if (cancelProductBtn) {
+                cancelProductBtn.addEventListener('click', closeProductModal);
+            }
+
+            // Close Discount Code Modal buttons
+            const closeDiscountCodeModalBtn = document.getElementById('closeDiscountCodeModalBtn');
+            if (closeDiscountCodeModalBtn) {
+                closeDiscountCodeModalBtn.addEventListener('click', closeDiscountCodeModal);
+            }
+
+            const cancelDiscountCodeBtn = document.getElementById('cancelDiscountCodeBtn');
+            if (cancelDiscountCodeBtn) {
+                cancelDiscountCodeBtn.addEventListener('click', closeDiscountCodeModal);
+            }
+
+            // Event delegation for dynamically created edit/delete buttons
+            document.addEventListener('click', (e) => {
+                // Edit Product
+                if (e.target.classList.contains('edit-product-btn')) {
+                    const productId = parseInt(e.target.getAttribute('data-product-id'));
+                    editProduct(productId);
+                }
+
+                // Delete Product
+                if (e.target.classList.contains('delete-product-btn')) {
+                    const productId = parseInt(e.target.getAttribute('data-product-id'));
+                    const productName = e.target.getAttribute('data-product-name');
+                    deleteProduct(productId, productName);
+                }
+
+                // Edit Discount Code
+                if (e.target.classList.contains('edit-discount-code-btn')) {
+                    const discountCodeId = parseInt(e.target.getAttribute('data-discount-code-id'));
+                    editDiscountCode(discountCodeId);
+                }
+
+                // Delete Discount Code
+                if (e.target.classList.contains('delete-discount-code-btn')) {
+                    const discountCodeId = parseInt(e.target.getAttribute('data-discount-code-id'));
+                    const discountCode = e.target.getAttribute('data-discount-code');
+                    deleteDiscountCode(discountCodeId, discountCode);
+                }
+            });
+        });
+
+        // Initialize
+        setTimeout(() => {
+            loadProducts();
+            loadDiscountCodes();
+        }, 500);
+    </script>
+</body>
+</html>
+

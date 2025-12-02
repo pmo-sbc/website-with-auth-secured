@@ -38,12 +38,13 @@ body {
 }
 
 .nav-container {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 0 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
 }
 
 .logo {
@@ -73,8 +74,10 @@ body {
 .nav-menu {
     display: flex;
     list-style: none;
-    gap: 2rem;
+    gap: 1.5rem;
     align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
 }
 
 .nav-menu a {
@@ -82,6 +85,8 @@ body {
     text-decoration: none;
     font-weight: 500;
     transition: color 0.3s;
+    white-space: nowrap;
+    font-size: 0.95rem;
 }
 
 .nav-menu a:hover,
@@ -532,5 +537,10 @@ body {
     .nav-menu {
         flex-wrap: wrap;
         gap: 1rem;
+    }
+    
+    .nav-container {
+        max-width: 100%;
+        padding: 0 1rem;
     }
 }

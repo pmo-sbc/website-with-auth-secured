@@ -464,6 +464,9 @@
     </div>
 
     <script src="/js/csrf-helper.js"></script>
+    <script src="js/session-manager.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/cart.js"></script>
     <script>
         let allUsers = [];
 
@@ -901,31 +904,55 @@
         }
 
         // Event listeners
-        document.getElementById('logoutBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            logout();
-        });
+        // Note: logoutBtn is handled by auth.js, so we don't need to attach it here
+        
+        // Wait for auth.js to finish updating navigation before attaching other listeners
+        setTimeout(() => {
+            document.getElementById('closeModal').addEventListener('click', closeAddTokensModal);
+            document.getElementById('closeIpModal').addEventListener('click', closeIpHistoryModal);
 
-        document.getElementById('closeModal').addEventListener('click', closeAddTokensModal);
-        document.getElementById('closeIpModal').addEventListener('click', closeIpHistoryModal);
+            document.getElementById('addTokensModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeAddTokensModal();
+                }
+            });
 
-        document.getElementById('addTokensModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeAddTokensModal();
-            }
-        });
+            document.getElementById('ipHistoryModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeIpHistoryModal();
+                }
+            });
 
-        document.getElementById('ipHistoryModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeIpHistoryModal();
-            }
-        });
-
-        document.getElementById('addTokensForm').addEventListener('submit', addTokensToUser);
-        document.getElementById('downloadIpLog').addEventListener('click', downloadIpLog);
+            document.getElementById('addTokensForm').addEventListener('submit', addTokensToUser);
+            document.getElementById('downloadIpLog').addEventListener('click', downloadIpLog);
+        }, 100);
 
         // Initialize
         loadUsers();
+        
+        // Final safeguard: Ensure Product link exists in navigation
+        function ensureProductLinkInNav() {
+            const navMenu = document.querySelector('.nav-menu');
+            if (!navMenu) {
+                setTimeout(ensureProductLinkInNav, 100);
+                return;
+            }
+            
+            const productLink = navMenu.querySelector('a[href="/product"]');
+            if (!productLink) {
+                // Find Home link and insert Product after it
+                const homeLink = navMenu.querySelector('a[href="/"]');
+                if (homeLink && homeLink.parentElement) {
+                    const productLi = document.createElement('li');
+                    productLi.innerHTML = '<a href="/product">Product</a>';
+                    homeLink.parentElement.insertAdjacentElement('afterend', productLi);
+                }
+            }
+        }
+        
+        // Run after a delay to ensure auth.js has run
+        setTimeout(ensureProductLinkInNav, 600);
+        setTimeout(ensureProductLinkInNav, 1200);
     </script>
 </body>
 </html>

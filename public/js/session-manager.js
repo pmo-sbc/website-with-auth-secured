@@ -33,6 +33,18 @@ class SessionManager {
         credentials: 'include'
       });
 
+      // If response is not ok, check if it's a network error or server error
+      if (!response.ok) {
+        // If it's a 401, user is not authenticated
+        if (response.status === 401) {
+          this.handleSessionExpired();
+          return false;
+        }
+        // For other errors, log but don't treat as session expired
+        console.warn('Session check returned non-200 status:', response.status);
+        return false;
+      }
+
       const data = await response.json();
 
       if (!data.authenticated) {
@@ -44,10 +56,16 @@ class SessionManager {
       const user = {
         name: data.username,
         userId: data.userId,
-        is_admin: data.is_admin || false
+        is_admin: data.is_admin || false,
+        tokens: data.tokens || 0
       };
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('authToken', 'session'); // Flag that we have a session
+      
+      // Trigger auth check to update navigation
+      if (typeof window.checkAuth === 'function') {
+        window.checkAuth();
+      }
 
       // Check if session is about to expire
       if (data.expiresIn && data.expiresIn < this.WARNING_THRESHOLD_MS && !this.warningShown) {
@@ -56,6 +74,13 @@ class SessionManager {
 
       return true;
     } catch (error) {
+      // Network errors shouldn't be treated as session expiration
+      // Only log the error, don't clear the session
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        console.warn('Session check network error (server may be unreachable):', error.message);
+        // Don't clear session on network errors - user might still be authenticated
+        return false; // Return false but don't expire session
+      }
       console.error('Session check failed:', error);
       return false;
     }

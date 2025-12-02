@@ -51,14 +51,26 @@ const config = {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://js.stripe.com",
+            "https://www.paypal.com"
+          ],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'"],
+          connectSrc: [
+            "'self'",
+            "https://api.stripe.com",
+            "https://www.paypal.com"
+          ],
           fontSrc: ["'self'"],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
-          frameSrc: ["'none'"],
+          frameSrc: [
+            "https://js.stripe.com",
+            "https://www.paypal.com"
+          ],
         },
       },
       hsts: {
@@ -92,6 +104,26 @@ const config = {
     secretKey: process.env.RECAPTCHA_SECRET_KEY || '',
     enabled: process.env.RECAPTCHA_ENABLED === 'true' || false,
     verifyUrl: 'https://www.google.com/recaptcha/api/siteverify'
+  },
+
+  // Stripe Configuration
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY || '',
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+    // Use test mode if no secret key is provided or if explicitly set
+    testMode: !process.env.STRIPE_SECRET_KEY || process.env.STRIPE_TEST_MODE === 'true',
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || ''
+  },
+
+  // PayPal Configuration
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID || '',
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET || '',
+    // Use sandbox mode if no client secret is provided or if explicitly set
+    sandboxMode: !process.env.PAYPAL_CLIENT_SECRET || process.env.PAYPAL_SANDBOX_MODE === 'true',
+    environment: (!process.env.PAYPAL_CLIENT_SECRET || process.env.PAYPAL_SANDBOX_MODE === 'true') 
+      ? 'sandbox' 
+      : 'live'
   }
 };
 
