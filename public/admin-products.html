@@ -257,6 +257,98 @@
         .checkbox-cell {
             text-align: center;
         }
+
+        .user-purchase-card {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .user-purchase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-purchase-info {
+            flex: 1;
+        }
+
+        .user-purchase-info h3 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.2rem;
+        }
+
+        .user-purchase-info p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .user-purchase-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .purchase-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--card-bg);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            gap: 1rem;
+        }
+
+        .purchase-item-checkbox {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .purchase-item-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        #selectAllPurchases {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .purchase-item-info {
+            flex: 1;
+        }
+
+        .purchase-item-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .purchase-item-details {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .purchase-item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -340,6 +432,60 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- User Purchases Section -->
+        <div class="admin-section">
+            <div class="section-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <h2 style="margin: 0;">User Purchases</h2>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                        <input type="checkbox" id="selectAllPurchases" style="width: auto; cursor: pointer;">
+                        <span>Select All</span>
+                    </label>
+                    <button class="btn-danger" id="bulkDeletePurchasesBtn" style="display: none;">
+                        Delete Selected (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+                <button class="btn-primary" id="refreshPurchasesBtn">🔄 Refresh</button>
+            </div>
+
+            <div id="userPurchasesError" class="error-message"></div>
+            <div id="userPurchasesSuccess" class="success-message"></div>
+
+            <div id="userPurchasesLoading" class="loading">Loading user purchases...</div>
+            <div id="userPurchasesContainer" style="display: none;">
+                <div id="userPurchasesList">
+                    <!-- Users with purchases will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Purchase Modal -->
+    <div id="addPurchaseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Product Purchase</h3>
+                <button class="close-modal" id="closeAddPurchaseModalBtn">&times;</button>
+            </div>
+            <form id="addPurchaseForm">
+                <input type="hidden" id="addPurchaseUserId">
+                <div class="form-group">
+                    <label class="form-label" for="addPurchaseProductId">Product *</label>
+                    <select id="addPurchaseProductId" class="form-input" required>
+                        <option value="">Select a product...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="addPurchaseQuantity">Quantity *</label>
+                    <input type="number" id="addPurchaseQuantity" class="form-input" min="1" value="1" required>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Add Purchase</button>
+                    <button type="button" class="btn-secondary" id="cancelAddPurchaseBtn" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -934,6 +1080,276 @@
             return div.innerHTML;
         }
 
+        function formatPurchaseDate(dateValue) {
+            if (!dateValue) {
+                return 'N/A';
+            }
+            
+            try {
+                // Try to parse the date
+                const date = new Date(dateValue);
+                
+                // Check if date is valid
+                if (isNaN(date.getTime())) {
+                    // If invalid, try to parse as SQLite datetime string
+                    // SQLite dates are typically in format: YYYY-MM-DD HH:MM:SS
+                    const sqliteDate = dateValue.toString().trim();
+                    if (sqliteDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+                        // It's a SQLite date string, parse it
+                        const parsed = new Date(sqliteDate.replace(' ', 'T'));
+                        if (!isNaN(parsed.getTime())) {
+                            return parsed.toLocaleDateString();
+                        }
+                    }
+                    return 'Invalid Date';
+                }
+                
+                return date.toLocaleDateString();
+            } catch (error) {
+                console.error('Error formatting date:', dateValue, error);
+                return 'N/A';
+            }
+        }
+
+        // User Purchases Functions
+        async function loadUserPurchases() {
+            const loadingEl = document.getElementById('userPurchasesLoading');
+            const containerEl = document.getElementById('userPurchasesContainer');
+            const listEl = document.getElementById('userPurchasesList');
+
+            try {
+                loadingEl.style.display = 'block';
+                containerEl.style.display = 'none';
+
+                const response = await fetch('/api/admin/users/purchases', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load user purchases');
+                }
+
+                const data = await response.json();
+
+                // Debug: Log the data to see what we're receiving
+                console.log('User purchases data:', data);
+                if (data.success && data.users && data.users.length > 0) {
+                    console.log('First user purchases:', data.users[0].purchases);
+                    if (data.users[0].purchases && data.users[0].purchases.length > 0) {
+                        console.log('First purchase orderDate:', data.users[0].purchases[0].orderDate);
+                    }
+                }
+
+                if (data.success && data.users) {
+                    if (data.users.length === 0) {
+                        listEl.innerHTML = '<div class="empty-state">No purchases found.</div>';
+                    } else {
+                        listEl.innerHTML = data.users.map(user => {
+                            const purchasesHtml = user.purchases.length > 0
+                                ? user.purchases.map(purchase => {
+                                    // Debug: Log each purchase
+                                    console.log('Processing purchase:', purchase.productName, 'orderDate:', purchase.orderDate, 'type:', typeof purchase.orderDate);
+                                    return `
+                                    <div class="purchase-item">
+                                        <div class="purchase-item-checkbox">
+                                            <input type="checkbox" class="purchase-checkbox" 
+                                                   data-order-id="${purchase.orderId}"
+                                                   data-product-name="${escapeHtml(purchase.productName)}">
+                                        </div>
+                                        <div class="purchase-item-info" style="flex: 1;">
+                                            <div class="purchase-item-name">${escapeHtml(purchase.productName)}</div>
+                                            <div class="purchase-item-details">
+                                                Order: ${escapeHtml(purchase.orderNumber)} | 
+                                                Quantity: ${purchase.quantity} | 
+                                                Price: $${purchase.price.toFixed(2)} | 
+                                                Date: ${formatPurchaseDate(purchase.orderDate || purchase.order_date || null)}
+                                            </div>
+                                        </div>
+                                        <div class="purchase-item-actions">
+                                            <button class="btn-danger delete-purchase-btn" 
+                                                    data-order-id="${purchase.orderId}"
+                                                    data-product-name="${escapeHtml(purchase.productName)}">
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                                }).join('')
+                                : '<div class="empty-state" style="padding: 1rem;">No purchases</div>';
+
+                            return `
+                                <div class="user-purchase-card">
+                                    <div class="user-purchase-header">
+                                        <div class="user-purchase-info">
+                                            <h3>${escapeHtml(user.username)}</h3>
+                                            <p>${escapeHtml(user.email)}</p>
+                                        </div>
+                                        <div class="user-purchase-actions">
+                                            <button class="btn-primary add-purchase-btn" 
+                                                    data-user-id="${user.id}"
+                                                    data-username="${escapeHtml(user.username)}">
+                                                + Add Purchase
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="purchases-list">
+                                        ${purchasesHtml}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+
+                    loadingEl.style.display = 'none';
+                    containerEl.style.display = 'block';
+                    
+                    // Reset selection after loading
+                    setTimeout(() => {
+                        updateSelectedCount();
+                    }, 100);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Error loading user purchases:', error);
+                showError('userPurchasesError', 'Failed to load user purchases. Please try again.');
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.purchase-checkbox:checked');
+            const count = checkboxes.length;
+            const selectedCountEl = document.getElementById('selectedCount');
+            const bulkDeleteBtn = document.getElementById('bulkDeletePurchasesBtn');
+            
+            if (selectedCountEl) {
+                selectedCountEl.textContent = count;
+            }
+            
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+            
+            // Update select all checkbox state
+            const selectAllCheckbox = document.getElementById('selectAllPurchases');
+            if (selectAllCheckbox) {
+                const allCheckboxes = document.querySelectorAll('.purchase-checkbox');
+                selectAllCheckbox.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+                selectAllCheckbox.indeterminate = checkboxes.length > 0 && checkboxes.length < allCheckboxes.length;
+            }
+        }
+
+        async function removePurchase(orderId, productName) {
+            if (!confirm(`Are you sure you want to remove this purchase of "${productName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetchWithCsrf(`/api/admin/orders/${orderId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showSuccess('userPurchasesSuccess', 'Purchase removed successfully');
+                    loadUserPurchases();
+                } else {
+                    throw new Error(data.error || 'Failed to remove purchase');
+                }
+            } catch (error) {
+                console.error('Error removing purchase:', error);
+                showError('userPurchasesError', 'Failed to remove purchase. Please try again.');
+            }
+        }
+
+        async function bulkDeletePurchases() {
+            const checkboxes = document.querySelectorAll('.purchase-checkbox:checked');
+            const selectedOrders = Array.from(checkboxes).map(cb => ({
+                orderId: parseInt(cb.getAttribute('data-order-id')),
+                productName: cb.getAttribute('data-product-name')
+            }));
+
+            if (selectedOrders.length === 0) {
+                return;
+            }
+
+            const count = selectedOrders.length;
+            if (!confirm(`Are you sure you want to delete ${count} purchase${count > 1 ? 's' : ''}? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                // Delete all selected orders
+                const deletePromises = selectedOrders.map(order => 
+                    fetchWithCsrf(`/api/admin/orders/${order.orderId}`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    })
+                );
+
+                const results = await Promise.allSettled(deletePromises);
+                
+                // Check for failures
+                const failures = results.filter(r => r.status === 'rejected' || !r.value.ok);
+                
+                if (failures.length > 0) {
+                    throw new Error(`${failures.length} of ${count} deletions failed`);
+                }
+
+                showSuccess('userPurchasesSuccess', `${count} purchase${count > 1 ? 's' : ''} deleted successfully`);
+                loadUserPurchases();
+            } catch (error) {
+                console.error('Error bulk deleting purchases:', error);
+                showError('userPurchasesError', 'Failed to delete some purchases. Please try again.');
+            }
+        }
+
+        function openAddPurchaseModal(userId, username) {
+            const modal = document.getElementById('addPurchaseModal');
+            const form = document.getElementById('addPurchaseForm');
+            
+            form.reset();
+            document.getElementById('addPurchaseUserId').value = userId;
+            
+            // Load products into select
+            loadProductsForPurchaseSelect();
+            
+            modal.classList.add('active');
+        }
+
+        function closeAddPurchaseModal() {
+            document.getElementById('addPurchaseModal').classList.remove('active');
+        }
+
+        async function loadProductsForPurchaseSelect() {
+            const selectEl = document.getElementById('addPurchaseProductId');
+            
+            try {
+                const response = await fetch('/api/admin/products?includeInactive=false', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load products');
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.products) {
+                    selectEl.innerHTML = '<option value="">Select a product...</option>' +
+                        data.products.map(product => 
+                            `<option value="${product.id}">${escapeHtml(product.name)} - $${product.price.toFixed(2)}</option>`
+                        ).join('');
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                showError('userPurchasesError', 'Failed to load products');
+            }
+        }
+
         // Close modals on outside click
         document.getElementById('productModal').addEventListener('click', (e) => {
             if (e.target.id === 'productModal') {
@@ -944,6 +1360,12 @@
         document.getElementById('discountCodeModal').addEventListener('click', (e) => {
             if (e.target.id === 'discountCodeModal') {
                 closeDiscountCodeModal();
+            }
+        });
+
+        document.getElementById('addPurchaseModal').addEventListener('click', (e) => {
+            if (e.target.id === 'addPurchaseModal') {
+                closeAddPurchaseModal();
             }
         });
 
@@ -1010,6 +1432,103 @@
                     const discountCode = e.target.getAttribute('data-discount-code');
                     deleteDiscountCode(discountCodeId, discountCode);
                 }
+
+                // Add Purchase
+                if (e.target.classList.contains('add-purchase-btn')) {
+                    const userId = parseInt(e.target.getAttribute('data-user-id'));
+                    const username = e.target.getAttribute('data-username');
+                    openAddPurchaseModal(userId, username);
+                }
+
+                // Delete Purchase
+                if (e.target.classList.contains('delete-purchase-btn')) {
+                    const orderId = parseInt(e.target.getAttribute('data-order-id'));
+                    const productName = e.target.getAttribute('data-product-name');
+                    removePurchase(orderId, productName);
+                }
+            });
+
+            // Select All checkbox
+            const selectAllCheckbox = document.getElementById('selectAllPurchases');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', (e) => {
+                    const checkboxes = document.querySelectorAll('.purchase-checkbox');
+                    checkboxes.forEach(cb => {
+                        cb.checked = e.target.checked;
+                    });
+                    updateSelectedCount();
+                });
+            }
+
+            // Individual checkbox change handler
+            document.addEventListener('change', (e) => {
+                if (e.target.classList.contains('purchase-checkbox')) {
+                    updateSelectedCount();
+                }
+            });
+
+            // Bulk delete button
+            const bulkDeleteBtn = document.getElementById('bulkDeletePurchasesBtn');
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.addEventListener('click', bulkDeletePurchases);
+            }
+
+            // Refresh Purchases button
+            const refreshPurchasesBtn = document.getElementById('refreshPurchasesBtn');
+            if (refreshPurchasesBtn) {
+                refreshPurchasesBtn.addEventListener('click', loadUserPurchases);
+            }
+
+            // Close Add Purchase Modal buttons
+            const closeAddPurchaseModalBtn = document.getElementById('closeAddPurchaseModalBtn');
+            if (closeAddPurchaseModalBtn) {
+                closeAddPurchaseModalBtn.addEventListener('click', closeAddPurchaseModal);
+            }
+
+            const cancelAddPurchaseBtn = document.getElementById('cancelAddPurchaseBtn');
+            if (cancelAddPurchaseBtn) {
+                cancelAddPurchaseBtn.addEventListener('click', closeAddPurchaseModal);
+            }
+
+            // Add Purchase Form submission
+            document.getElementById('addPurchaseForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const userId = parseInt(document.getElementById('addPurchaseUserId').value);
+                const productId = parseInt(document.getElementById('addPurchaseProductId').value);
+                const quantity = parseInt(document.getElementById('addPurchaseQuantity').value);
+
+                if (!productId) {
+                    showError('userPurchasesError', 'Please select a product');
+                    return;
+                }
+
+                try {
+                    const response = await fetchWithCsrf(`/api/admin/users/${userId}/purchases`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            productId,
+                            quantity
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        showSuccess('userPurchasesSuccess', 'Purchase added successfully');
+                        closeAddPurchaseModal();
+                        loadUserPurchases();
+                    } else {
+                        throw new Error(data.error || 'Failed to add purchase');
+                    }
+                } catch (error) {
+                    console.error('Error adding purchase:', error);
+                    showError('userPurchasesError', 'Failed to add purchase. Please try again.');
+                }
             });
         });
 
@@ -1017,6 +1536,7 @@
         setTimeout(() => {
             loadProducts();
             loadDiscountCodes();
+            loadUserPurchases();
         }, 500);
     </script>
 </body>

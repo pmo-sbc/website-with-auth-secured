@@ -5,6 +5,8 @@
 
 const express = require('express');
 const productRepository = require('../db/productRepository');
+const orderRepository = require('../db/orderRepository');
+const userRepository = require('../db/userRepository');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { configureCsrf } = require('../middleware/security');
@@ -250,6 +252,174 @@ router.delete(
     res.json({
       success: true,
       message: 'Product deleted successfully'
+    });
+  })
+);
+
+/**
+ * GET /api/admin/users/purchases
+ * Get all users with their purchased products (admin only)
+ */
+router.get(
+  '/api/admin/users/purchases',
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const usersWithPurchases = orderRepository.getAllUsersWithPurchases();
+    
+    res.json({
+      success: true,
+      users: usersWithPurchases
+    });
+  })
+);
+
+/**
+ * DELETE /api/admin/orders/:id
+ * Delete an order (remove a purchase) (admin only)
+ */
+router.delete(
+  '/api/admin/orders/:id',
+  requireAuth,
+  requireAdmin,
+  csrfProtection,
+  asyncHandler(async (req, res) => {
+    const orderId = parseInt(req.params.id);
+    
+    const order = orderRepository.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+    
+    const deleted = orderRepository.delete(orderId);
+    
+    if (!deleted) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete order'
+      });
+    }
+    
+    logger.info('Order deleted by admin', {
+      adminUserId: req.session.userId,
+      orderId,
+      orderNumber: order.order_number,
+      userId: order.user_id
+    });
+    
+    res.json({
+      success: true,
+      message: 'Purchase removed successfully'
+    });
+  })
+);
+
+/**
+ * POST /api/admin/users/:userId/purchases
+ * Manually add a product purchase to a user (admin only)
+ */
+router.post(
+  '/api/admin/users/:userId/purchases',
+  requireAuth,
+  requireAdmin,
+  csrfProtection,
+  asyncHandler(async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const { productId, quantity = 1 } = req.body;
+    
+    // Validate user exists
+    const user = userRepository.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Validate product exists
+    const product = productRepository.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+    
+    // Validate quantity
+    if (!quantity || quantity < 1 || !Number.isInteger(quantity)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Quantity must be a positive integer'
+      });
+    }
+    
+    // Get customer info from user
+    const customerInfo = userRepository.getCustomerInfo(userId);
+    
+    // Create order data
+    const orderData = {
+      customer: {
+        firstName: customerInfo?.first_name || user.username,
+        lastName: customerInfo?.last_name || '',
+        email: user.email,
+        phone: customerInfo?.phone || null,
+        address: customerInfo?.address || null,
+        city: customerInfo?.city || null,
+        state: customerInfo?.state || null,
+        zipCode: customerInfo?.zip_code || null,
+        country: customerInfo?.country || null
+      },
+      order: {
+        items: [{
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          quantity: quantity
+        }],
+        subtotal: product.price * quantity,
+        discount: 0,
+        total: product.price * quantity
+      },
+      payment: {
+        method: 'manual_admin'
+      }
+    };
+    
+    // Create the order
+    const order = orderRepository.create(userId, orderData);
+    
+    // If product provides tokens, add them to user account
+    if (product.provides_tokens && product.token_quantity > 0) {
+      const tokensToAdd = product.token_quantity * quantity;
+      userRepository.addTokens(userId, tokensToAdd);
+      logger.info('Tokens added via manual purchase', {
+        userId,
+        productId,
+        quantity,
+        tokensAdded: tokensToAdd
+      });
+    }
+    
+    logger.info('Manual purchase added by admin', {
+      adminUserId: req.session.userId,
+      userId,
+      productId,
+      productName: product.name,
+      quantity,
+      orderId: order.id,
+      orderNumber: order.orderNumber
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'Purchase added successfully',
+      order: {
+        id: order.id,
+        orderNumber: order.orderNumber
+      }
     });
   })
 );
