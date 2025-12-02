@@ -1,3 +1,9 @@
+// Track previous auth state to detect changes
+let previousAuthState = {
+    isLoggedIn: false,
+    userId: null
+};
+
 // Authentication Check
 function checkAuth() {
     const token = localStorage.getItem('authToken');
@@ -10,6 +16,28 @@ function checkAuth() {
         setTimeout(checkAuth, 100);
         return;
     }
+
+    // Check if auth state changed
+    const currentUserId = user.id || user.userId || null;
+    const isLoggedIn = !!(token && user.name);
+    const authStateChanged = (
+        previousAuthState.isLoggedIn !== isLoggedIn ||
+        previousAuthState.userId !== currentUserId
+    );
+
+    if (authStateChanged && typeof window.switchCartOnAuthChange === 'function') {
+        // Auth state changed, switch cart
+        window.switchCartOnAuthChange();
+        if (typeof window.updateCartCount === 'function') {
+            window.updateCartCount();
+        }
+    }
+
+    // Update previous auth state
+    previousAuthState = {
+        isLoggedIn,
+        userId: currentUserId
+    };
 
     if (token && user.name) {
         // User is logged in - show dashboard and logout with username and tokens
@@ -158,6 +186,9 @@ async function logout() {
             }
         });
 
+        // Dispatch logout event before clearing storage
+        window.dispatchEvent(new CustomEvent('userLoggedOut'));
+
         // Clear local storage
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
@@ -171,6 +202,8 @@ async function logout() {
         }
     } catch (error) {
         console.error('Logout error:', error);
+        // Dispatch logout event
+        window.dispatchEvent(new CustomEvent('userLoggedOut'));
         // Clear local storage and redirect anyway on error
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');

@@ -1,34 +1,131 @@
 /**
  * Shopping Cart Management
- * Handles cart operations using localStorage
+ * Handles cart operations with user-specific storage
+ * - Logged-in users: localStorage with user ID key
+ * - Guest users: sessionStorage (temporary, cleared on browser close)
  */
 
-// Cart storage key
-const CART_STORAGE_KEY = 'shopping_cart';
+// Get current user ID from localStorage
+function getCurrentUserId() {
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        // Check both 'id' and 'userId' for compatibility
+        return user.id || user.userId || null;
+    } catch (error) {
+        return null;
+    }
+}
+
+// Get the appropriate storage key for the current user
+function getCartStorageKey() {
+    const userId = getCurrentUserId();
+    if (userId) {
+        // Logged-in user: use localStorage with user-specific key
+        return `shopping_cart_user_${userId}`;
+    } else {
+        // Guest user: use sessionStorage
+        return 'shopping_cart_guest';
+    }
+}
+
+// Get the appropriate storage object (localStorage or sessionStorage)
+function getCartStorage() {
+    const userId = getCurrentUserId();
+    if (userId) {
+        // Logged-in user: use localStorage (persists across sessions)
+        return localStorage;
+    } else {
+        // Guest user: use sessionStorage (cleared when browser closes)
+        return sessionStorage;
+    }
+}
 
 /**
- * Get cart from localStorage
+ * Get cart from appropriate storage
  */
 function getCart() {
     try {
-        const cartJson = localStorage.getItem(CART_STORAGE_KEY);
+        const storage = getCartStorage();
+        const storageKey = getCartStorageKey();
+        const cartJson = storage.getItem(storageKey);
         return cartJson ? JSON.parse(cartJson) : [];
     } catch (error) {
-        console.error('Error reading cart from localStorage:', error);
+        console.error('Error reading cart from storage:', error);
         return [];
     }
 }
 
 /**
- * Save cart to localStorage
+ * Save cart to appropriate storage
  */
 function saveCart(cart) {
     try {
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        const storage = getCartStorage();
+        const storageKey = getCartStorageKey();
+        storage.setItem(storageKey, JSON.stringify(cart));
         return true;
     } catch (error) {
-        console.error('Error saving cart to localStorage:', error);
+        console.error('Error saving cart to storage:', error);
         return false;
+    }
+}
+
+/**
+ * Switch cart when user logs in or out
+ * This preserves the guest cart when logging in, and clears it when logging out
+ */
+function switchCartOnAuthChange() {
+    const userId = getCurrentUserId();
+    const oldGuestCartKey = 'shopping_cart_guest';
+    
+    if (userId) {
+        // User just logged in - merge guest cart with user cart if needed
+        const guestCart = sessionStorage.getItem(oldGuestCartKey);
+        if (guestCart) {
+            try {
+                const guestCartItems = JSON.parse(guestCart);
+                const userCart = getCart();
+                
+                // Merge guest cart items into user cart
+                guestCartItems.forEach(guestItem => {
+                    const existingItemIndex = userCart.findIndex(item => item.id === guestItem.id);
+                    if (existingItemIndex !== -1) {
+                        // Item exists, update quantity (add guest quantity to user quantity)
+                        userCart[existingItemIndex].quantity = (userCart[existingItemIndex].quantity || 1) + (guestItem.quantity || 1);
+                    } else {
+                        // New item, add it
+                        userCart.push(guestItem);
+                    }
+                });
+                
+                // Save merged cart
+                saveCart(userCart);
+                
+                // Clear guest cart
+                sessionStorage.removeItem(oldGuestCartKey);
+                
+                // Update cart count
+                updateCartCount();
+                
+                console.log('Cart merged from guest to user account');
+            } catch (error) {
+                console.error('Error merging guest cart:', error);
+            }
+        }
+    } else {
+        // User just logged out - clear user cart from localStorage
+        // Keep guest cart in sessionStorage if it exists
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+            if (key.startsWith('shopping_cart_user_')) {
+                localStorage.removeItem(key);
+            }
+        });
+        
+        // Update cart count
+        updateCartCount();
+        
+        console.log('User cart cleared on logout');
     }
 }
 
@@ -93,7 +190,9 @@ function updateItemQuantity(itemId, quantity) {
  * Clear entire cart
  */
 function clearCart() {
-    localStorage.removeItem(CART_STORAGE_KEY);
+    const storage = getCartStorage();
+    const storageKey = getCartStorageKey();
+    storage.removeItem(storageKey);
     updateCartCount();
     return [];
 }
@@ -166,11 +265,66 @@ function updateCartCount() {
 
 // Initialize cart count on page load
 if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', updateCartCount);
+    document.addEventListener('DOMContentLoaded', () => {
+        updateCartCount();
+        // Check for auth changes and switch cart if needed
+        switchCartOnAuthChange();
+    });
     updateCartCount();
+    
+    // Listen for auth state changes
+    window.addEventListener('storage', (e) => {
+        // When localStorage changes (like user login/logout), switch cart
+        if (e.key === 'user' || e.key === 'authToken') {
+            switchCartOnAuthChange();
+            updateCartCount();
+        }
+    });
+    
+    // Listen for custom auth events
+    window.addEventListener('userLoggedIn', () => {
+        switchCartOnAuthChange();
+        updateCartCount();
+    });
+    
+    window.addEventListener('userLoggedOut', () => {
+        switchCartOnAuthChange();
+        updateCartCount();
+    });
+    
+    // Also check on auth check (when auth.js runs)
+    // This handles cases where auth state changes without storage events
+    const originalCheckAuth = window.checkAuth;
+    if (originalCheckAuth) {
+        // Wrap checkAuth to also switch cart
+        window.checkAuth = function() {
+            const result = originalCheckAuth.apply(this, arguments);
+            setTimeout(() => {
+                switchCartOnAuthChange();
+                updateCartCount();
+            }, 100);
+            return result;
+        };
+    }
 }
 
-// Export functions for use in other scripts
+// Export functions globally for use in other scripts
+if (typeof window !== 'undefined') {
+    window.getCart = getCart;
+    window.saveCart = saveCart;
+    window.addItemToCart = addItemToCart;
+    window.removeItemFromCart = removeItemFromCart;
+    window.updateItemQuantity = updateItemQuantity;
+    window.clearCart = clearCart;
+    window.getCartItemCount = getCartItemCount;
+    window.getCartTotal = getCartTotal;
+    window.getCartSubtotal = getCartSubtotal;
+    window.getCartDiscount = getCartDiscount;
+    window.updateCartCount = updateCartCount;
+    window.switchCartOnAuthChange = switchCartOnAuthChange;
+}
+
+// Also export for Node.js if needed
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         getCart,
@@ -183,7 +337,8 @@ if (typeof module !== 'undefined' && module.exports) {
         getCartTotal,
         getCartSubtotal,
         getCartDiscount,
-        updateCartCount
+        updateCartCount,
+        switchCartOnAuthChange
     };
 }
 

@@ -53,14 +53,29 @@ class SessionManager {
       }
 
       // Update localStorage with user data
+      const previousUserId = (() => {
+        try {
+          const prevUser = JSON.parse(localStorage.getItem('user') || '{}');
+          return prevUser.userId || prevUser.id || null;
+        } catch {
+          return null;
+        }
+      })();
+      
       const user = {
         name: data.username,
-        userId: data.userId,
+        id: data.userId, // Store as 'id' for consistency
+        userId: data.userId, // Also store as 'userId' for compatibility
         is_admin: data.is_admin || false,
         tokens: data.tokens || 0
       };
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('authToken', 'session'); // Flag that we have a session
+      
+      // Dispatch login event if user just logged in (userId changed from null/undefined to a value)
+      if (!previousUserId && data.userId) {
+        window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: { userId: data.userId } }));
+      }
       
       // Trigger auth check to update navigation
       if (typeof window.checkAuth === 'function') {
