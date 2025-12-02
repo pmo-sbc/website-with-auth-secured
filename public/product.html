@@ -62,6 +62,23 @@
             margin-bottom: 0.5rem;
         }
 
+        .discount-code-note {
+            font-size: 0.9rem;
+            color: var(--success-color);
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(46, 204, 113, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            display: inline-block;
+        }
+
+        .discount-code-note strong {
+            font-weight: 600;
+            color: var(--success-color);
+        }
+
         .product-description {
             font-size: 0.9rem;
             color: var(--text-secondary);
@@ -369,6 +386,7 @@
     <script>
         // Product data - will be loaded from API
         let PRODUCTS = [];
+        let DISCOUNT_CODES = [];
 
         // Format currency
         function formatCurrency(amount) {
@@ -376,6 +394,51 @@
                 style: 'currency',
                 currency: 'USD'
             }).format(amount);
+        }
+
+        // Get discount codes that apply to a specific product
+        function getDiscountCodesForProduct(productId) {
+            // Convert productId to number for comparison
+            const productIdNum = typeof productId === 'string' ? parseInt(productId, 10) : productId;
+            
+            return DISCOUNT_CODES.filter(dc => {
+                // If product_ids is null or undefined, code applies to all products
+                if (dc.product_ids === null || dc.product_ids === undefined) {
+                    return true;
+                }
+                // If product_ids is an empty array, code applies to no products (disabled) - exclude it
+                if (Array.isArray(dc.product_ids) && dc.product_ids.length === 0) {
+                    return false;
+                }
+                // If product_ids is a non-empty array, check if this product ID is in the list
+                if (Array.isArray(dc.product_ids) && dc.product_ids.length > 0) {
+                    return dc.product_ids.some(id => {
+                        const idNum = typeof id === 'string' ? parseInt(id, 10) : id;
+                        return idNum === productIdNum;
+                    });
+                }
+                // Fallback: exclude if we can't determine
+                return false;
+            });
+        }
+
+        // Load discount codes
+        async function loadDiscountCodes() {
+            try {
+                const response = await fetch('/api/discount-codes', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.discountCodes) {
+                        DISCOUNT_CODES = data.discountCodes;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading discount codes:', error);
+                // Don't show error to user, just continue without discount codes
+            }
         }
 
         // Load products from API
@@ -402,6 +465,8 @@
 
                 if (data.success && data.products && data.products.length > 0) {
                     PRODUCTS = data.products;
+                    // Load discount codes before rendering products
+                    await loadDiscountCodes();
                     renderProducts();
                     gridEl.style.display = 'grid';
                     
@@ -423,10 +488,26 @@
         // Render all products
         function renderProducts() {
             const gridEl = document.getElementById('productsGrid');
-            gridEl.innerHTML = PRODUCTS.map(product => `
+            gridEl.innerHTML = PRODUCTS.map(product => {
+                // Get discount codes that apply to this product
+                const applicableCodes = getDiscountCodesForProduct(product.id);
+                
+                // Build discount code display
+                let discountCodeHtml = '';
+                if (applicableCodes.length > 0) {
+                    const codesList = applicableCodes.map(dc => `<strong>${escapeHtml(dc.code)}</strong>`).join(', ');
+                    discountCodeHtml = `
+                        <div class="discount-code-note">
+                            💰 Use discount code${applicableCodes.length > 1 ? 's' : ''}: ${codesList} at checkout
+                        </div>
+                    `;
+                }
+
+                return `
                 <div class="product-card" data-product-id="${product.id}">
                     <div class="product-header">
                         <h2 class="product-title">${escapeHtml(product.name)}</h2>
+                        ${discountCodeHtml}
                         ${product.description ? `<p class="product-description">${escapeHtml(product.description)}</p>` : ''}
                         <div class="product-price-container">
                             <span class="product-price">${formatCurrency(product.price)}</span>
@@ -474,7 +555,8 @@
                         </button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             // Attach event listeners to all product cards
             attachProductEventListeners();

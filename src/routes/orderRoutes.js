@@ -86,6 +86,31 @@ router.post(
       if (discountCode) {
         const discountCodeData = discountCodeRepository.findByCode(discountCode);
         if (discountCodeData) {
+          // Check if discount code applies to no products (empty array = disabled)
+          if (Array.isArray(discountCodeData.product_ids) && discountCodeData.product_ids.length === 0) {
+            return res.status(400).json({
+              success: false,
+              error: 'This discount code is not available for any products'
+            });
+          }
+
+          // Validate that discount code applies to products in the order
+          if (discountCodeData.product_ids && Array.isArray(discountCodeData.product_ids) && discountCodeData.product_ids.length > 0) {
+            // Code applies to specific products only
+            const orderProductIds = order.items.map(item => item.id).filter(id => id != null);
+            const hasMatchingProduct = orderProductIds.some(orderProductId => 
+              discountCodeData.product_ids.includes(orderProductId)
+            );
+
+            if (!hasMatchingProduct) {
+              return res.status(400).json({
+                success: false,
+                error: 'This discount code does not apply to the products in your order'
+              });
+            }
+          }
+          // If product_ids is null, code applies to all products (no validation needed)
+          
           discountCodeId = discountCodeData.id;
           // Increment usage count
           discountCodeRepository.incrementUsage(discountCodeId);

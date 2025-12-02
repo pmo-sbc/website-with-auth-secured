@@ -189,6 +189,64 @@
             color: #2c3e50;
         }
 
+        /* Restricted Access Message */
+        .restricted-access {
+            display: none;
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 600px;
+            margin: 4rem auto;
+        }
+
+        .restricted-access.show {
+            display: block;
+        }
+
+        .restricted-access-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .restricted-access-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        .restricted-access-message {
+            font-size: 1.1rem;
+            color: #6c757d;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .restricted-access-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .restricted-access-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .studio-content {
+            /* Main content wrapper - will be hidden if access is restricted */
+        }
+
+        .studio-content.hidden {
+            display: none;
+        }
+
         .search-info {
             text-align: center;
             margin-top: 1rem;
@@ -812,6 +870,20 @@
     </nav>
 
     <div class="studio-wrapper">
+        <!-- Restricted Access Message (shown if user hasn't purchased a course) -->
+        <div class="restricted-access" id="restrictedAccess">
+            <div class="restricted-access-icon">🔒</div>
+            <h2 class="restricted-access-title">Prompt Studio Access Required</h2>
+            <p class="restricted-access-message">
+                This feature is exclusively available to users who have purchased a course. 
+                Purchase a course to unlock access to the Prompt Studio and start creating 
+                professional AI prompts with our expert-designed blueprints.
+            </p>
+            <a href="/product" class="restricted-access-button">View Available Courses</a>
+        </div>
+
+        <!-- Main Studio Content (hidden if access is restricted) -->
+        <div class="studio-content" id="studioContent">
         <!-- Header -->
         <div class="studio-header">
             <h1 class="studio-title">Prompt Studio</h1>
@@ -970,6 +1042,8 @@
                 </div>
             </div>
         </div>
+        </div>
+        <!-- End of studio-content -->
     </div>
 
     <!-- Result Modal -->
@@ -1022,6 +1096,67 @@
     </div>
 
     <script>
+        // Check if user has purchased a course before showing the studio
+        async function checkCourseAccess() {
+            const restrictedAccessEl = document.getElementById('restrictedAccess');
+            const studioContentEl = document.getElementById('studioContent');
+            
+            try {
+                // Check if user is logged in
+                const token = localStorage.getItem('authToken');
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                
+                if (!token || !user.name) {
+                    // User is not logged in - show restricted access
+                    restrictedAccessEl.classList.add('show');
+                    studioContentEl.classList.add('hidden');
+                    return false;
+                }
+                
+                // Check if user has purchased a course
+                const response = await fetch('/api/orders/purchased-products', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    // If not authenticated or error, show restricted access
+                    restrictedAccessEl.classList.add('show');
+                    studioContentEl.classList.add('hidden');
+                    return false;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.products) {
+                    // Check if any purchased product is a course
+                    const hasCourse = data.products.some(product => product.is_course === true || product.is_course === 1);
+                    
+                    if (hasCourse) {
+                        // User has purchased a course - show studio
+                        restrictedAccessEl.classList.remove('show');
+                        studioContentEl.classList.remove('hidden');
+                        return true;
+                    } else {
+                        // User is logged in but hasn't purchased a course
+                        restrictedAccessEl.classList.add('show');
+                        studioContentEl.classList.add('hidden');
+                        return false;
+                    }
+                } else {
+                    // No products or error - show restricted access
+                    restrictedAccessEl.classList.add('show');
+                    studioContentEl.classList.add('hidden');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error checking course access:', error);
+                // On error, show restricted access to be safe
+                restrictedAccessEl.classList.add('show');
+                studioContentEl.classList.add('hidden');
+                return false;
+            }
+        }
+
         let generatedPromptText = '';
         let allTemplates = {};
         let templates = {};
@@ -1860,14 +1995,22 @@
             }
         });
 
-        // Load templates on page load
+        // Check course access and load templates on page load
+        async function initializePage() {
+            const hasAccess = await checkCourseAccess();
+            if (hasAccess) {
+                // Only load templates if user has access
+                loadTemplates();
+            }
+        }
+
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                loadTemplates();
+                initializePage();
             });
         } else {
             // DOM already loaded
-            loadTemplates();
+            initializePage();
         }
     </script>
     <script src="js/auth.js"></script>

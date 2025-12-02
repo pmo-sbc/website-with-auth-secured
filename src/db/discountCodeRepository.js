@@ -18,7 +18,12 @@ class DiscountCodeRepository {
 
     try {
       logger.db('SELECT', 'discount_codes', { includeInactive });
-      return db.prepare(query).all();
+      const codes = db.prepare(query).all();
+      // Parse product_ids JSON for each code
+      return codes.map(code => ({
+        ...code,
+        product_ids: code.product_ids ? JSON.parse(code.product_ids) : null
+      }));
     } catch (error) {
       logger.error('Error finding discount codes', error);
       throw error;
@@ -34,7 +39,14 @@ class DiscountCodeRepository {
 
     try {
       logger.db('SELECT', 'discount_codes', { code });
-      return db.prepare(query).get(code.toUpperCase());
+      const result = db.prepare(query).get(code.toUpperCase());
+      if (result) {
+        return {
+          ...result,
+          product_ids: result.product_ids ? JSON.parse(result.product_ids) : null
+        };
+      }
+      return result;
     } catch (error) {
       logger.error('Error finding discount code by code', error);
       throw error;
@@ -50,7 +62,38 @@ class DiscountCodeRepository {
 
     try {
       logger.db('SELECT', 'discount_codes', { id });
-      return db.prepare(query).get(id);
+      const result = db.prepare(query).get(id);
+      if (result) {
+        // Parse product_ids - handle null, empty string, or JSON string
+        // null or empty string = apply to all products
+        // "[]" (empty array JSON) = apply to no products
+        // "[1,2,3]" (non-empty array JSON) = apply to specific products
+        let productIds = null;
+        if (result.product_ids !== null && result.product_ids !== undefined) {
+          const trimmed = String(result.product_ids).trim();
+          if (trimmed && trimmed !== 'null') {
+            try {
+              productIds = JSON.parse(trimmed);
+              // Ensure it's an array after parsing
+              if (!Array.isArray(productIds)) {
+                productIds = null; // Invalid format, default to null
+              }
+            } catch (e) {
+              logger.warn('Failed to parse product_ids for discount code', { id, product_ids: result.product_ids, error: e.message });
+              productIds = null;
+            }
+          } else if (trimmed === '') {
+            // Empty string should be treated as null (apply to all)
+            productIds = null;
+          }
+        }
+        
+        return {
+          ...result,
+          product_ids: productIds
+        };
+      }
+      return result;
     } catch (error) {
       logger.error('Error finding discount code by ID', error);
       throw error;
@@ -60,22 +103,34 @@ class DiscountCodeRepository {
   /**
    * Create a new discount code
    */
-  create(code, discountPercentage) {
+  create(code, discountPercentage, productIds = null) {
     const db = getDatabase();
     const query = `
-      INSERT INTO discount_codes (code, discount_percentage, is_active, usage_count, created_at, updated_at)
-      VALUES (?, ?, 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      INSERT INTO discount_codes (code, discount_percentage, is_active, usage_count, product_ids, created_at, updated_at)
+      VALUES (?, ?, 1, 0, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `;
 
     try {
-      logger.db('INSERT', 'discount_codes', { code, discountPercentage });
-      const result = db.prepare(query).run(code.toUpperCase(), discountPercentage);
+      // Convert productIds to JSON string:
+      // null/undefined = apply to all products (store as NULL)
+      // [] (empty array) = apply to no products (store as "[]")
+      // [1, 2, 3] (non-empty array) = apply to specific products (store as "[1,2,3]")
+      let productIdsJson = null;
+      if (productIds !== null && productIds !== undefined) {
+        if (Array.isArray(productIds)) {
+          productIdsJson = JSON.stringify(productIds); // This will be "[]" for empty arrays
+        } else {
+          productIdsJson = null; // Invalid type, default to null
+        }
+      }
+
+      logger.db('INSERT', 'discount_codes', { code, discountPercentage, productIds });
+      const result = db.prepare(query).run(code.toUpperCase(), discountPercentage, productIdsJson);
+      
+      const newCode = this.findById(result.lastInsertRowid);
       return {
-        id: result.lastInsertRowid,
-        code: code.toUpperCase(),
-        discount_percentage: discountPercentage,
-        is_active: 1,
-        usage_count: 0
+        ...newCode,
+        product_ids: productIdsJson ? JSON.parse(productIdsJson) : null
       };
     } catch (error) {
       logger.error('Error creating discount code', error);
@@ -86,22 +141,72 @@ class DiscountCodeRepository {
   /**
    * Update a discount code
    */
-  update(id, { code, discountPercentage, is_active }) {
+  update(id, { code, discountPercentage, is_active, productIds }) {
     const db = getDatabase();
     const query = `
       UPDATE discount_codes
-      SET code = ?, discount_percentage = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+      SET code = ?, discount_percentage = ?, is_active = ?, product_ids = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
 
     try {
-      logger.db('UPDATE', 'discount_codes', { id, code, discountPercentage });
-      const result = db.prepare(query).run(
+      // Convert productIds to JSON string:
+      // null/undefined = apply to all products (store as NULL)
+      // [] (empty array) = apply to no products (store as "[]")
+      // [1, 2, 3] (non-empty array) = apply to specific products (store as "[1,2,3]")
+      let productIdsJson = undefined;
+      if (productIds !== undefined) {
+        if (productIds === null) {
+          productIdsJson = null; // Apply to all
+        } else if (Array.isArray(productIds)) {
+          productIdsJson = JSON.stringify(productIds); // This will be "[]" for empty arrays or "[1,2,3]" for non-empty
+        } else {
+          productIdsJson = undefined; // Invalid type, don't update
+        }
+      }
+
+      logger.db('UPDATE', 'discount_codes', { id, code, discountPercentage, productIds });
+      
+      const params = [
         code ? code.toUpperCase() : undefined,
         discountPercentage,
-        is_active ? 1 : 0,
+        is_active !== undefined ? (is_active ? 1 : 0) : undefined,
+        productIdsJson,
         id
-      );
+      ].filter(p => p !== undefined);
+      
+      // Build query dynamically based on what's being updated
+      const updateFields = [];
+      const updateParams = [];
+      let paramIndex = 0;
+      
+      if (code !== undefined) {
+        updateFields.push('code = ?');
+        updateParams.push(code.toUpperCase());
+      }
+      if (discountPercentage !== undefined) {
+        updateFields.push('discount_percentage = ?');
+        updateParams.push(discountPercentage);
+      }
+      if (is_active !== undefined) {
+        updateFields.push('is_active = ?');
+        updateParams.push(is_active ? 1 : 0);
+      }
+      if (productIds !== undefined) {
+        updateFields.push('product_ids = ?');
+        updateParams.push(productIdsJson);
+      }
+      
+      updateFields.push('updated_at = CURRENT_TIMESTAMP');
+      updateParams.push(id);
+      
+      const dynamicQuery = `
+        UPDATE discount_codes
+        SET ${updateFields.join(', ')}
+        WHERE id = ?
+      `;
+      
+      const result = db.prepare(dynamicQuery).run(...updateParams);
       return result.changes > 0;
     } catch (error) {
       logger.error('Error updating discount code', error);

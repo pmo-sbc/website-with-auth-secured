@@ -67,7 +67,7 @@ router.post(
   requireAdmin,
   csrfProtection,
   asyncHandler(async (req, res) => {
-    const { code, discount_percentage } = req.body;
+    const { code, discount_percentage, product_ids } = req.body;
 
     if (!code || discount_percentage === undefined) {
       return res.status(400).json({
@@ -83,6 +83,23 @@ router.post(
       });
     }
 
+    // Validate product_ids if provided
+    if (product_ids !== undefined && product_ids !== null) {
+      if (!Array.isArray(product_ids)) {
+        return res.status(400).json({
+          success: false,
+          error: 'product_ids must be an array'
+        });
+      }
+      // Validate all items are numbers
+      if (product_ids.some(id => typeof id !== 'number' || id <= 0)) {
+        return res.status(400).json({
+          success: false,
+          error: 'All product_ids must be positive numbers'
+        });
+      }
+    }
+
     // Check if code already exists
     const existing = discountCodeRepository.findByCode(code);
     if (existing) {
@@ -92,7 +109,7 @@ router.post(
       });
     }
 
-    const discountCode = discountCodeRepository.create(code, discount_percentage);
+    const discountCode = discountCodeRepository.create(code, discount_percentage, product_ids || null);
 
     logger.info('Discount code created', {
       userId: req.session.userId,
@@ -119,7 +136,7 @@ router.put(
   csrfProtection,
   asyncHandler(async (req, res) => {
     const discountCodeId = parseInt(req.params.id);
-    const { code, discount_percentage, is_active } = req.body;
+    const { code, discount_percentage, is_active, product_ids } = req.body;
 
     const existingDiscountCode = discountCodeRepository.findById(discountCodeId);
     if (!existingDiscountCode) {
@@ -136,6 +153,23 @@ router.put(
       });
     }
 
+    // Validate product_ids if provided
+    if (product_ids !== undefined && product_ids !== null) {
+      if (!Array.isArray(product_ids)) {
+        return res.status(400).json({
+          success: false,
+          error: 'product_ids must be an array'
+        });
+      }
+      // Validate all items are numbers
+      if (product_ids.some(id => typeof id !== 'number' || id <= 0)) {
+        return res.status(400).json({
+          success: false,
+          error: 'All product_ids must be positive numbers'
+        });
+      }
+    }
+
     // Check if new code conflicts with existing code
     if (code && code.toUpperCase() !== existingDiscountCode.code) {
       const existing = discountCodeRepository.findByCode(code);
@@ -150,7 +184,8 @@ router.put(
     const updated = discountCodeRepository.update(discountCodeId, {
       code: code || existingDiscountCode.code,
       discountPercentage: discount_percentage !== undefined ? discount_percentage : existingDiscountCode.discount_percentage,
-      is_active: is_active !== undefined ? is_active : existingDiscountCode.is_active
+      is_active: is_active !== undefined ? is_active : existingDiscountCode.is_active,
+      productIds: product_ids !== undefined ? product_ids : existingDiscountCode.product_ids
     });
 
     if (!updated) {

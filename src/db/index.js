@@ -179,6 +179,7 @@ function createTables() {
       discount_percentage REAL NOT NULL,
       is_active BOOLEAN DEFAULT 1,
       usage_count INTEGER DEFAULT 0,
+      product_ids TEXT DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

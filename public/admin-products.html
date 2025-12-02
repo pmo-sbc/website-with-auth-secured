@@ -258,6 +258,19 @@
             text-align: center;
         }
 
+        .product-checkbox {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .product-checkbox + span {
+            user-select: none;
+        }
+
+        label:has(.product-checkbox):hover {
+            background: var(--dark-bg);
+        }
+
         .user-purchase-card {
             background: var(--dark-bg);
             border: 1px solid var(--border-color);
@@ -422,6 +435,7 @@
                             <th>ID</th>
                             <th>Code</th>
                             <th>Discount %</th>
+                            <th>Products</th>
                             <th>Usage Count</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -576,6 +590,31 @@
                         <input type="checkbox" id="discountCodeIsActive" checked> Active
                     </label>
                 </div>
+                <div class="form-group" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                    <label class="form-label">Apply to Products</label>
+                    <div style="margin-top: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                            <input type="radio" name="productApplication" id="applyToAllProducts" value="all" checked>
+                            <span>Apply to all products</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                            <input type="radio" name="productApplication" id="applyToSpecificProducts" value="specific">
+                            <span>Apply to specific products</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                            <input type="radio" name="productApplication" id="applyToNoProducts" value="none">
+                            <span>Apply to no products (disabled)</span>
+                        </label>
+                    </div>
+                    <div id="productSelectionContainer" style="display: none; max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem; background: var(--darker-bg); margin-top: 0.5rem;">
+                        <div id="productCheckboxesList">
+                            <!-- Product checkboxes will be loaded here -->
+                        </div>
+                    </div>
+                    <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
+                        Select which products this discount code applies to. If set to "no products", the code will be invalid and cannot be used.
+                    </small>
+                </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button type="submit" class="btn-primary" style="flex: 1;">Save</button>
                     <button type="button" class="btn-secondary" id="cancelDiscountCodeBtn" style="flex: 1;">Cancel</button>
@@ -684,16 +723,45 @@
                 loadingEl.style.display = 'none';
 
                 if (!data.success || !data.discountCodes || data.discountCodes.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No discount codes found</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No discount codes found</td></tr>';
                     tableContainer.style.display = 'block';
                     return;
                 }
 
-                tableBody.innerHTML = data.discountCodes.map(dc => `
+                // Load products to get names for display
+                const productsResponse = await fetch('/api/admin/products?includeInactive=false', {
+                    credentials: 'include'
+                });
+                let productsMap = new Map();
+                if (productsResponse.ok) {
+                    const productsData = await productsResponse.json();
+                    if (productsData.success && productsData.products) {
+                        productsData.products.forEach(product => {
+                            productsMap.set(product.id, product.name);
+                        });
+                    }
+                }
+
+                tableBody.innerHTML = data.discountCodes.map(dc => {
+                    let productsText = 'All Products';
+                    if (dc.product_ids === null || dc.product_ids === undefined) {
+                        productsText = 'All Products';
+                    } else if (Array.isArray(dc.product_ids) && dc.product_ids.length === 0) {
+                        productsText = '<span style="color: var(--error-color);">No Products (Disabled)</span>';
+                    } else if (Array.isArray(dc.product_ids) && dc.product_ids.length > 0) {
+                        const productNames = dc.product_ids
+                            .map(id => productsMap.get(id))
+                            .filter(name => name)
+                            .join(', ');
+                        productsText = productNames || `${dc.product_ids.length} product(s)`;
+                    }
+
+                    return `
                     <tr>
                         <td>${dc.id}</td>
                         <td><strong>${escapeHtml(dc.code)}</strong></td>
                         <td>${dc.discount_percentage.toFixed(2)}%</td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(productsText)}">${escapeHtml(productsText)}</td>
                         <td>${dc.usage_count || 0}</td>
                         <td>
                             <span class="badge ${dc.is_active ? 'badge-active' : 'badge-inactive'}">
@@ -705,7 +773,8 @@
                             <button class="btn-danger delete-discount-code-btn" data-discount-code-id="${dc.id}" data-discount-code="${escapeHtml(dc.code)}">Delete</button>
                         </td>
                     </tr>
-                `).join('');
+                `;
+                }).join('');
 
                 tableContainer.style.display = 'block';
             } catch (error) {
@@ -799,7 +868,7 @@
         }
 
         // Discount code modal functions
-        function openDiscountCodeModal(discountCodeId = null) {
+        async function openDiscountCodeModal(discountCodeId = null) {
             const modal = document.getElementById('discountCodeModal');
             const form = document.getElementById('discountCodeForm');
             const title = document.getElementById('discountCodeModalTitle');
@@ -807,15 +876,129 @@
             form.reset();
             document.getElementById('discountCodeId').value = '';
             document.getElementById('discountCodeIsActive').checked = true;
+            document.getElementById('applyToAllProducts').checked = true;
+            document.getElementById('applyToSpecificProducts').checked = false;
+            document.getElementById('applyToNoProducts').checked = false;
+            document.getElementById('productSelectionContainer').style.display = 'none';
+
+            // Load products for checkboxes FIRST (must complete before loading discount code data)
+            await loadProductsForDiscountCode();
 
             if (discountCodeId) {
                 title.textContent = 'Edit Discount Code';
-                loadDiscountCodeForEdit(discountCodeId);
+                // Wait for products to be loaded before setting product selections
+                await loadDiscountCodeForEdit(discountCodeId);
             } else {
                 title.textContent = 'Add Discount Code';
             }
 
             modal.classList.add('active');
+        }
+
+        async function loadProductsForDiscountCode() {
+            const container = document.getElementById('productCheckboxesList');
+            
+            try {
+                const response = await fetch('/api/admin/products?includeInactive=false', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load products');
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.products) {
+                    container.innerHTML = data.products.map(product => `
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 4px; transition: background 0.2s;">
+                            <input type="checkbox" class="product-checkbox" value="${product.id}" data-product-id="${product.id}">
+                            <span>${escapeHtml(product.name)} - ${formatCurrency(product.price)}</span>
+                        </label>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                container.innerHTML = '<p style="color: var(--text-secondary);">Failed to load products</p>';
+            }
+        }
+
+        function getSelectedProductIds() {
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.value));
+        }
+
+        function setSelectedProductIds(productIds) {
+            // Clear all checkboxes first
+            document.querySelectorAll('.product-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+
+            // Handle different data types - could be null, undefined, empty array, or array of IDs
+            // Also handle if it's a JSON string that needs parsing
+            let parsedProductIds = productIds;
+            if (typeof productIds === 'string') {
+                try {
+                    parsedProductIds = JSON.parse(productIds);
+                } catch (e) {
+                    parsedProductIds = null;
+                }
+            }
+
+            // Determine which radio button to select based on productIds value:
+            // null = apply to all products
+            // [] (empty array) = apply to no products
+            // [1, 2, 3] (non-empty array) = apply to specific products
+
+            if (parsedProductIds === null || parsedProductIds === undefined) {
+                // Apply to all products
+                document.getElementById('applyToAllProducts').checked = true;
+                document.getElementById('applyToSpecificProducts').checked = false;
+                document.getElementById('applyToNoProducts').checked = false;
+                document.getElementById('productSelectionContainer').style.display = 'none';
+            } else if (Array.isArray(parsedProductIds) && parsedProductIds.length === 0) {
+                // Apply to no products (empty array)
+                document.getElementById('applyToAllProducts').checked = false;
+                document.getElementById('applyToSpecificProducts').checked = false;
+                document.getElementById('applyToNoProducts').checked = true;
+                document.getElementById('productSelectionContainer').style.display = 'none';
+            } else if (Array.isArray(parsedProductIds) && parsedProductIds.length > 0) {
+                // Specific products selected
+                document.getElementById('applyToAllProducts').checked = false;
+                document.getElementById('applyToSpecificProducts').checked = true;
+                document.getElementById('applyToNoProducts').checked = false;
+                document.getElementById('productSelectionContainer').style.display = 'block';
+                
+                // Wait a moment to ensure checkboxes are in the DOM, then select them
+                setTimeout(() => {
+                    parsedProductIds.forEach(productId => {
+                        // Convert to number for comparison
+                        const productIdNum = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
+                        // Try multiple selectors to find the checkbox
+                        let checkbox = document.querySelector(`.product-checkbox[data-product-id="${productIdNum}"]`);
+                        if (!checkbox) {
+                            // Try by value attribute
+                            checkbox = document.querySelector(`.product-checkbox[value="${productIdNum}"]`);
+                        }
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }, 50);
+            } else {
+                // Fallback to apply to all
+                document.getElementById('applyToAllProducts').checked = true;
+                document.getElementById('applyToSpecificProducts').checked = false;
+                document.getElementById('applyToNoProducts').checked = false;
+                document.getElementById('productSelectionContainer').style.display = 'none';
+            }
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
         }
 
         function closeDiscountCodeModal() {
@@ -839,6 +1022,12 @@
                     document.getElementById('discountCode').value = dc.code;
                     document.getElementById('discountPercentage').value = dc.discount_percentage;
                     document.getElementById('discountCodeIsActive').checked = dc.is_active;
+                    
+                    // Set product selection - ensure products are loaded first
+                    // Wait a bit to ensure DOM is updated with product checkboxes
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    setSelectedProductIds(dc.product_ids);
                 }
             } catch (error) {
                 console.error('Error loading discount code:', error);
@@ -1026,6 +1215,20 @@
             const code = document.getElementById('discountCode').value.trim().toUpperCase();
             const discount_percentage = parseFloat(document.getElementById('discountPercentage').value);
             const is_active = document.getElementById('discountCodeIsActive').checked;
+            
+            // Get selected product IDs based on radio button selection
+            let product_ids = null;
+            if (document.getElementById('applyToAllProducts').checked) {
+                product_ids = null; // Apply to all products
+            } else if (document.getElementById('applyToNoProducts').checked) {
+                product_ids = []; // Apply to no products (empty array)
+            } else if (document.getElementById('applyToSpecificProducts').checked) {
+                product_ids = getSelectedProductIds();
+                // If no products selected but "specific" is chosen, treat as empty array (no products)
+                if (!product_ids || product_ids.length === 0) {
+                    product_ids = [];
+                }
+            }
 
             try {
                 const url = discountCodeId ? `/api/admin/discount-codes/${discountCodeId}` : '/api/admin/discount-codes';
@@ -1040,7 +1243,8 @@
                     body: JSON.stringify({
                         code,
                         discount_percentage,
-                        is_active
+                        is_active,
+                        product_ids
                     })
                 });
 
@@ -1488,6 +1692,43 @@
             const cancelAddPurchaseBtn = document.getElementById('cancelAddPurchaseBtn');
             if (cancelAddPurchaseBtn) {
                 cancelAddPurchaseBtn.addEventListener('click', closeAddPurchaseModal);
+            }
+
+            // Product application radio button handlers
+            const applyToAllRadio = document.getElementById('applyToAllProducts');
+            const applyToSpecificRadio = document.getElementById('applyToSpecificProducts');
+            const applyToNoRadio = document.getElementById('applyToNoProducts');
+            const productContainer = document.getElementById('productSelectionContainer');
+
+            function handleProductApplicationChange() {
+                if (applyToAllRadio.checked) {
+                    // Apply to all - hide product selection
+                    productContainer.style.display = 'none';
+                    // Uncheck all product checkboxes
+                    document.querySelectorAll('.product-checkbox').forEach(cb => {
+                        cb.checked = false;
+                    });
+                } else if (applyToSpecificRadio.checked) {
+                    // Apply to specific products - show product selection
+                    productContainer.style.display = 'block';
+                } else if (applyToNoRadio.checked) {
+                    // Apply to no products - hide product selection
+                    productContainer.style.display = 'none';
+                    // Uncheck all product checkboxes
+                    document.querySelectorAll('.product-checkbox').forEach(cb => {
+                        cb.checked = false;
+                    });
+                }
+            }
+
+            if (applyToAllRadio) {
+                applyToAllRadio.addEventListener('change', handleProductApplicationChange);
+            }
+            if (applyToSpecificRadio) {
+                applyToSpecificRadio.addEventListener('change', handleProductApplicationChange);
+            }
+            if (applyToNoRadio) {
+                applyToNoRadio.addEventListener('change', handleProductApplicationChange);
             }
 
             // Add Purchase Form submission
