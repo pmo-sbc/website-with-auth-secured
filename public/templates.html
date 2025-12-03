@@ -937,6 +937,29 @@
                         <option value="">Choose a blueprint...</option>
                     </select>
                 </div>
+
+                <div class="selector-group" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="includeCompanyProfile" style="width: auto; margin: 0; cursor: pointer;">
+                        <span class="selector-label" style="margin: 0; font-weight: 500;">Include Company Profile</span>
+                    </label>
+                    
+                    <div id="companyProfileSection" style="display: none; margin-top: 1rem;">
+                        <div class="selector-group" style="margin-bottom: 1rem;">
+                            <label class="selector-label">Company</label>
+                            <select id="companySelect" class="selector-dropdown">
+                                <option value="">Choose a company...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="selector-group">
+                            <label class="selector-label">Community</label>
+                            <select id="communitySelect" class="selector-dropdown" disabled>
+                                <option value="">Choose a community...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Panel: Composer -->
@@ -1460,6 +1483,26 @@
             dynamicParameters.style.display = 'none';
             promptTemplateDiv.innerHTML = '<div class="output-placeholder">Select a blueprint to preview the prompt structure...</div>';
             document.getElementById('saveBtn').style.display = 'none';
+            
+            // Reset company profile checkbox
+            const includeCompanyProfileCheckbox = document.getElementById('includeCompanyProfile');
+            const companyProfileSection = document.getElementById('companyProfileSection');
+            const companySelect = document.getElementById('companySelect');
+            const communitySelect = document.getElementById('communitySelect');
+            
+            if (includeCompanyProfileCheckbox) {
+                includeCompanyProfileCheckbox.checked = false;
+            }
+            if (companyProfileSection) {
+                companyProfileSection.style.display = 'none';
+            }
+            if (companySelect) {
+                companySelect.innerHTML = '<option value="">Choose a company...</option>';
+            }
+            if (communitySelect) {
+                communitySelect.innerHTML = '<option value="">Choose a community...</option>';
+                communitySelect.disabled = true;
+            }
         }
 
         // Search functionality
@@ -1556,6 +1599,7 @@
         document.querySelector('.filter-btn[data-category="all"]').addEventListener('click', function() {
             handleFilterClick('all');
         });
+
 
         // Bookmark functionality
         function updateBookmarkButton(templateId, isSaved) {
@@ -1748,12 +1792,77 @@
 
             // Replace placeholders (all fields are validated to be filled at this point)
             // Reuse the inputs already queried above for validation
+            let hasReplacedAny = false;
+            
             inputs.forEach(input => {
                 const name = input.getAttribute('data-name');
                 const value = input.value.trim();
-                const placeholder = `{{${name}}}`;
-                finalPrompt = finalPrompt.replaceAll(placeholder, value);
+                
+                if (!name) {
+                    console.warn('Skipping placeholder replacement: name is empty', { input });
+                    return;
+                }
+                
+                let replaced = false;
+                
+                // Try multiple placeholder formats to ensure we catch all variations
+                const placeholderVariations = [
+                    `{{${name}}}`,
+                    `{{ ${name} }}`,
+                    `{{${name} }}`,
+                    `{{ ${name}}}`
+                ];
+                
+                placeholderVariations.forEach(placeholder => {
+                    if (finalPrompt.includes(placeholder)) {
+                        finalPrompt = finalPrompt.replaceAll(placeholder, value);
+                        replaced = true;
+                        hasReplacedAny = true;
+                        console.log('Replaced placeholder:', placeholder, 'with value:', value);
+                    }
+                });
+                
+                // Also try to replace any placeholder that contains the name (case-insensitive)
+                // This handles cases where the placeholder might have different casing or formatting
+                if (!replaced) {
+                    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const placeholderRegex = new RegExp(`\\{\\{\\s*${escapedName}\\s*\\}\\}`, 'gi');
+                    if (placeholderRegex.test(finalPrompt)) {
+                        finalPrompt = finalPrompt.replace(placeholderRegex, value);
+                        replaced = true;
+                        hasReplacedAny = true;
+                        console.log('Replaced placeholder via regex:', name, 'with value:', value);
+                    }
+                }
             });
+            
+            // Count remaining placeholders after replacement attempts
+            const remainingPlaceholders = (finalPrompt.match(/\{\{[^}]+\}\}/g) || []).length;
+            
+            // Handle templates that have "" at the end instead of placeholders
+            // This is a fallback for templates created without proper placeholder format
+            if (remainingPlaceholders === 0 && inputs.length === 1 && finalPrompt.includes('""')) {
+                const value = inputs[0].value.trim();
+                // Replace "" at the end of the prompt (like 'for ""') with the actual value
+                // Match the last occurrence of "" before end of string
+                finalPrompt = finalPrompt.replace(/("")(\s*)$/, value ? `"${value}"$2` : '$1$2');
+                hasReplacedAny = true;
+                console.log('Replaced trailing "" with value:', value);
+            }
+            
+            // Final cleanup: remove any remaining empty placeholders
+            // Replace any remaining {{...}} patterns that weren't matched
+            finalPrompt = finalPrompt.replace(/\{\{[^}]+\}\}/g, '');
+            
+            // Clean up any triple or more quotes that might have been created (""", """"", etc.)
+            // This handles cases where replacement went wrong or quotes were duplicated
+            finalPrompt = finalPrompt.replace(/"{3,}/g, '"');
+            
+            // Trim any trailing whitespace
+            finalPrompt = finalPrompt.trim();
+            
+            // Log the final prompt for debugging
+            console.log('Final prompt after placeholder replacement:', finalPrompt);
 
             // Apply global configuration options (language, tone, writing style)
             const language = document.getElementById('language').value;
@@ -1771,6 +1880,42 @@
             // Replace writing style (handle various phrasings)
             if (writingStyle && writingStyle !== 'Default') {
                 finalPrompt = finalPrompt.replace(/You have a \w+ writing style\./gi, `You have a ${writingStyle} writing style.`);
+            }
+
+            // Check if company profile should be included
+            const includeCompanyProfile = document.getElementById('includeCompanyProfile');
+            const companySelect = document.getElementById('companySelect');
+            const communitySelect = document.getElementById('communitySelect');
+            
+            if (includeCompanyProfile && includeCompanyProfile.checked && companySelect && companySelect.value && communitySelect && communitySelect.value) {
+                try {
+                    const companyId = parseInt(companySelect.value);
+                    if (!isNaN(companyId)) {
+                        // Fetch company profile prompt (generates for all communities in the company)
+                        const companyPromptResponse = await fetch(`/api/generate-company-prompt/${companyId}`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (companyPromptResponse.ok) {
+                            const companyPromptData = await companyPromptResponse.json();
+                            if (companyPromptData.success && companyPromptData.prompt) {
+                                // Prepend company profile prompt to the final prompt
+                                finalPrompt = companyPromptData.prompt + '\n\n' + finalPrompt;
+                            }
+                        } else {
+                            const errorData = await companyPromptResponse.json().catch(() => ({}));
+                            console.warn('Failed to generate company profile prompt:', companyPromptResponse.status, errorData.error || '');
+                            // Continue without company profile if it fails
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching company profile prompt:', error);
+                    // Continue without company profile if it fails
+                }
             }
 
             // Track usage
@@ -1995,6 +2140,122 @@
             }
         });
 
+        // Load companies for company profile dropdown
+        async function loadCompanies() {
+            const companySelect = document.getElementById('companySelect');
+            if (!companySelect) return;
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    companySelect.innerHTML = '<option value="">Please log in to select a company</option>';
+                    return;
+                }
+
+                const response = await fetch('/api/companies', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load companies');
+                }
+
+                const data = await response.json();
+                if (!data.success || !data.companies || data.companies.length === 0) {
+                    companySelect.innerHTML = '<option value="">No companies found</option>';
+                    return;
+                }
+
+                companySelect.innerHTML = '<option value="">Choose a company...</option>';
+                data.companies.forEach(company => {
+                    const option = document.createElement('option');
+                    option.value = company.id;
+                    option.textContent = company.name;
+                    companySelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading companies:', error);
+                companySelect.innerHTML = '<option value="">Error loading companies</option>';
+            }
+        }
+
+        // Setup company profile checkbox and dropdowns
+        function setupCompanyProfileSection() {
+            const includeCompanyProfileCheckbox = document.getElementById('includeCompanyProfile');
+            const companyProfileSection = document.getElementById('companyProfileSection');
+            const companySelect = document.getElementById('companySelect');
+            const communitySelect = document.getElementById('communitySelect');
+
+            if (!includeCompanyProfileCheckbox || !companyProfileSection || !companySelect || !communitySelect) {
+                return; // Elements not found, skip setup
+            }
+
+            // Always ensure checkbox is unchecked on page load
+            includeCompanyProfileCheckbox.checked = false;
+            companyProfileSection.style.display = 'none';
+            companySelect.innerHTML = '<option value="">Choose a company...</option>';
+            communitySelect.innerHTML = '<option value="">Choose a community...</option>';
+            communitySelect.disabled = true;
+
+            // Toggle company profile section visibility
+            includeCompanyProfileCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    companyProfileSection.style.display = 'block';
+                    loadCompanies();
+                } else {
+                    companyProfileSection.style.display = 'none';
+                    companySelect.innerHTML = '<option value="">Choose a company...</option>';
+                    communitySelect.innerHTML = '<option value="">Choose a community...</option>';
+                    communitySelect.disabled = true;
+                }
+            });
+
+            // Load communities when company is selected
+            companySelect.addEventListener('change', async function() {
+                const companyId = this.value;
+                
+                if (!companyId) {
+                    communitySelect.innerHTML = '<option value="">Choose a community...</option>';
+                    communitySelect.disabled = true;
+                    return;
+                }
+
+                try {
+                    communitySelect.disabled = true;
+                    communitySelect.innerHTML = '<option value="">Loading communities...</option>';
+
+                    const response = await fetch(`/api/companies/${companyId}/communities`, {
+                        credentials: 'include'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to load communities');
+                    }
+
+                    const data = await response.json();
+                    if (!data.success || !data.communities || data.communities.length === 0) {
+                        communitySelect.innerHTML = '<option value="">No communities found</option>';
+                        communitySelect.disabled = false;
+                        return;
+                    }
+
+                    communitySelect.innerHTML = '<option value="">Choose a community...</option>';
+                    data.communities.forEach(community => {
+                        const option = document.createElement('option');
+                        option.value = community.id;
+                        option.textContent = community.name;
+                        communitySelect.appendChild(option);
+                    });
+                    
+                    communitySelect.disabled = false;
+                } catch (error) {
+                    console.error('Error loading communities:', error);
+                    communitySelect.innerHTML = '<option value="">Error loading communities</option>';
+                    communitySelect.disabled = false;
+                }
+            });
+        }
+
         // Check course access and load templates on page load
         async function initializePage() {
             const hasAccess = await checkCourseAccess();
@@ -2002,6 +2263,8 @@
                 // Only load templates if user has access
                 loadTemplates();
             }
+            // Setup company profile section
+            setupCompanyProfileSection();
         }
 
         if (document.readyState === 'loading') {

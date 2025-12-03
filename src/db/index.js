@@ -184,6 +184,43 @@ function createTables() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS companies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      legal_name TEXT,
+      marketing_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS communities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      ilec BOOLEAN DEFAULT 0,
+      clec BOOLEAN DEFAULT 0,
+      serving_company_name TEXT,
+      technologies JSON,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS service_packages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      technology_type TEXT,
+      license_type TEXT,
+      download_speed TEXT,
+      upload_speed TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_saved_prompts_user_id ON saved_prompts(user_id);
     CREATE INDEX IF NOT EXISTS idx_saved_prompts_project_id ON saved_prompts(project_id);
     CREATE INDEX IF NOT EXISTS idx_usage_stats_user_id ON usage_stats(user_id);
@@ -204,6 +241,9 @@ function createTables() {
     CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
     CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code);
     CREATE INDEX IF NOT EXISTS idx_discount_codes_is_active ON discount_codes(is_active);
+    CREATE INDEX IF NOT EXISTS idx_companies_user_id ON companies(user_id);
+    CREATE INDEX IF NOT EXISTS idx_communities_company_id ON communities(company_id);
+    CREATE INDEX IF NOT EXISTS idx_service_packages_user_id ON service_packages(user_id);
   `;
 
   db.exec(schema);

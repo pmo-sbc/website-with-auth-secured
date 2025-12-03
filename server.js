@@ -41,6 +41,10 @@ const userManagementRoutes = require('./src/routes/userManagementRoutes');
 const generatePromptRoutes = require('./src/routes/generatePromptRoutes');
 const projectRoutes = require('./src/routes/projectRoutes');
 const profileRoutes = require('./src/routes/profileRoutes');
+const companyRoutes = require('./src/routes/companyRoutes');
+const communityRoutes = require('./src/routes/communityRoutes');
+const servicePackageRoutes = require('./src/routes/servicePackageRoutes');
+const promptGeneratorRoutes = require('./src/routes/promptGeneratorRoutes');
 const adminTemplateRoutes = require('./src/routes/adminTemplateRoutes');
 const healthRoutes = require('./src/routes/healthRoutes');
 const activityLogRoutes = require('./src/routes/activityLogRoutes');
@@ -128,6 +132,14 @@ app.use('/', projectRoutes);
 
 // Profile routes
 app.use('/', profileRoutes);
+
+// Company routes
+app.use('/', companyRoutes);
+
+// Community routes
+app.use('/', communityRoutes);
+app.use('/', servicePackageRoutes);
+app.use('/', promptGeneratorRoutes);
 
 // Admin template management routes
 app.use('/admin', adminTemplateRoutes);

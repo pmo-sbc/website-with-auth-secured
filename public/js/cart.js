@@ -249,12 +249,12 @@ function updateCartCount() {
     const cartCount = document.getElementById('cartCount');
     
     if (cartLink && cartCount) {
-        if (count > 0) {
-            cartLink.style.display = 'list-item';
-            cartCount.textContent = count;
-        } else {
-            cartLink.style.display = 'none';
-        }
+        // Always show cart link (never hide it)
+        cartLink.style.display = 'list-item';
+        cartCount.textContent = count;
+    } else if (cartCount) {
+        // Update count even if link element structure is different
+        cartCount.textContent = count;
     }
     
     // Dispatch custom event for other components to listen

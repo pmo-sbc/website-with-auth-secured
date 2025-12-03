@@ -1,4 +1,4 @@
-ok everythi/**
+/**
  * Gmail Delivery Diagnostic Tool
  * Helps diagnose why emails reach some providers but not Gmail
  */

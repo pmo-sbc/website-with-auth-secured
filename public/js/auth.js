@@ -43,6 +43,9 @@ function checkAuth() {
         // User is logged in - show dashboard and logout with username and tokens
         const tokens = user.tokens !== undefined ? user.tokens : '...';
         
+        // Get cart count for display
+        const cartCount = (typeof getCartItemCount === 'function') ? getCartItemCount() : 0;
+        
         // Always update the menu for logged-in users to ensure all links are present
         navMenu.innerHTML = `
             <li><a href="/">Home</a></li>
@@ -53,6 +56,7 @@ function checkAuth() {
             <li><a href="/profile">Profile</a></li>
             <li id="adminMenuLink" style="display: none;"><a href="/admin/users">User Management</a></li>
             <li id="adminProductsLink" style="display: none;"><a href="/admin/products">Product Management</a></li>
+            <li id="cartLink"><a href="/cart">Cart (<span id="cartCount">${cartCount}</span>)</a></li>
             <li style="color: #a1a1aa; display: flex; align-items: center; padding: 0 1rem;">Welcome, ${user.name} | 🪙 ${tokens} tokens</li>
             <li><a href="#" id="logoutBtn" class="btn-primary">Logout</a></li>
         `;
@@ -81,20 +85,21 @@ function checkAuth() {
             });
         }
 
-        // Add cart link if cart.js is available
-        addCartLinkToNav();
+        // Update cart count display
+        updateCartCountDisplay();
     } else {
         // User is not logged in - show login and signup
+        // Get cart count for display
+        const cartCount = (typeof getCartItemCount === 'function') ? getCartItemCount() : 0;
+        
         // Always update the menu for non-logged-in users to ensure all links are present
         navMenu.innerHTML = `
             <li><a href="/">Home</a></li>
             <li><a href="/product">Product</a></li>
+            <li id="cartLink"><a href="/cart">Cart (<span id="cartCount">${cartCount}</span>)</a></li>
             <li><a href="/login">Login</a></li>
             <li><a href="/signup" class="btn-primary">Sign Up</a></li>
         `;
-        
-        // Add cart link if cart.js is available
-        addCartLinkToNav();
     }
 }
 
@@ -120,46 +125,24 @@ function ensureProductLink() {
     }
 }
 
-// Function to add cart link to navigation
-function addCartLinkToNav() {
-    const navMenu = document.querySelector('.nav-menu');
-    if (!navMenu) return;
-
-    // Check if cart link already exists
-    let cartLink = document.getElementById('cartLink');
-    const count = (typeof getCartItemCount === 'function') ? getCartItemCount() : 0;
-    
-    if (!cartLink) {
-        // Create cart link - always show it
-        cartLink = document.createElement('li');
-        cartLink.id = 'cartLink';
-        cartLink.innerHTML = `<a href="/cart">Cart (<span id="cartCount">${count}</span>)</a>`;
-        
-        // Find a good position to insert (before logout/login or at end)
-        const logoutBtn = navMenu.querySelector('#logoutBtn');
-        const signupBtn = navMenu.querySelector('a[href="/signup"]');
-        
-        if (logoutBtn && logoutBtn.parentElement) {
-            navMenu.insertBefore(cartLink, logoutBtn.parentElement);
-        } else if (signupBtn && signupBtn.parentElement) {
-            navMenu.insertBefore(cartLink, signupBtn.parentElement);
-        } else {
-            // Insert before last item (usually logout/signup)
-            const lastItem = navMenu.lastElementChild;
-            if (lastItem) {
-                navMenu.insertBefore(cartLink, lastItem);
-            } else {
-                navMenu.appendChild(cartLink);
-            }
-        }
-    } else {
-        // Update existing cart count
-        const cartCount = document.getElementById('cartCount');
-        if (cartCount) {
-            cartCount.textContent = count;
-        }
+// Function to update cart count display (cart link is now always in the menu)
+function updateCartCountDisplay() {
+    const cartCount = document.getElementById('cartCount');
+    if (cartCount && typeof getCartItemCount === 'function') {
+        const count = getCartItemCount();
+        cartCount.textContent = count;
+    } else if (cartCount) {
+        cartCount.textContent = '0';
     }
 }
+
+// Legacy function for backwards compatibility - now just updates the count
+function addCartLinkToNav() {
+    updateCartCountDisplay();
+}
+
+// Make updateCartCountDisplay available globally for cart.js to use
+window.updateCartCountDisplay = updateCartCountDisplay;
 
 // Get CSRF token from cookie
 function getCsrfToken() {
@@ -235,14 +218,14 @@ setTimeout(function() {
     ensureProductLink();
 }, 1000);
 
-// Listen for cart updates to refresh navigation
+// Listen for cart updates to refresh cart count
 window.addEventListener('cartUpdated', function() {
-    addCartLinkToNav();
+    updateCartCountDisplay();
 });
 
-// Also update cart link after a short delay to ensure cart.js is loaded
+// Also update cart count after a short delay to ensure cart.js is loaded
 setTimeout(function() {
-    addCartLinkToNav();
+    updateCartCountDisplay();
 }, 200);
 
 // Watch for navigation changes and ensure Product link is always present
