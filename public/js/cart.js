@@ -242,8 +242,9 @@ function getCartDiscount() {
 
 /**
  * Update cart count in navigation
+ * @param {boolean} skipEvent - If true, skip dispatching cartUpdated event (prevents recursion)
  */
-function updateCartCount() {
+function updateCartCount(skipEvent = false) {
     const count = getCartItemCount();
     const cartLink = document.getElementById('cartLink');
     const cartCount = document.getElementById('cartCount');
@@ -257,10 +258,12 @@ function updateCartCount() {
         cartCount.textContent = count;
     }
     
-    // Dispatch custom event for other components to listen
-    window.dispatchEvent(new CustomEvent('cartUpdated', { 
-        detail: { count, cart: getCart() } 
-    }));
+    // Dispatch custom event for other components to listen (unless skipped to prevent recursion)
+    if (!skipEvent) {
+        window.dispatchEvent(new CustomEvent('cartUpdated', { 
+            detail: { count, cart: getCart() } 
+        }));
+    }
 }
 
 // Initialize cart count on page load

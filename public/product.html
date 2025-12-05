@@ -788,9 +788,15 @@
             }
         }
 
-        // Listen for cart updates
+        // Listen for cart updates (use cart.js function with skipEvent flag to prevent recursion)
         window.addEventListener('cartUpdated', () => {
-            updateCartCount();
+            if (typeof window.updateCartCount === 'function') {
+                // Use cart.js function with skipEvent=true to prevent infinite recursion
+                window.updateCartCount(true);
+            } else {
+                // Fallback to local function if cart.js not loaded
+                updateCartCount();
+            }
             addCartLinkToNav();
         });
     </script>
