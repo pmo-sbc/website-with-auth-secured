@@ -16,6 +16,7 @@ const config = require('../config');
 const logger = require('../utils/logger');
 const path = require('path');
 const { logManualActivity, ActivityTypes } = require('../middleware/activityLogger');
+const { generateFingerprint } = require('../utils/deviceFingerprint');
 
 const router = express.Router();
 const authLimiter = configureAuthRateLimit();
@@ -155,28 +156,47 @@ router.post(
       });
     }
 
-    // Create session
-    req.session.userId = user.id;
-    req.session.username = user.username;
+    // Regenerate session to prevent session fixation attacks
+    req.session.regenerate((err) => {
+      if (err) {
+        logger.error('Session regeneration failed', err);
+        return res.status(500).json({
+          error: 'Session error',
+          message: 'Failed to create secure session. Please try again.'
+        });
+      }
 
-    // If remember me is checked, extend cookie duration to 30 days
-    if (rememberMe) {
-      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-    }
+      // Create new session with user data
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      
+      // Generate and store device fingerprint for session validation
+      req.session.deviceFingerprint = generateFingerprint(req);
+      req.session.lastActivity = Date.now();
 
-    logger.info('User logged in successfully', {
-      userId: user.id,
-      username: user.username,
-      rememberMe: !!rememberMe
-    });
+      // If remember me is checked, extend cookie duration to 30 days
+      if (rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      }
 
-    // Log login activity
-    logManualActivity(req, ActivityTypes.USER_LOGIN, 'user', user.id, { username: user.username, rememberMe: !!rememberMe });
+      logger.info('User logged in successfully', {
+        userId: user.id,
+        username: user.username,
+        rememberMe: !!rememberMe,
+        deviceFingerprint: req.session.deviceFingerprint.substring(0, 8) + '...' // Log first 8 chars only
+      });
 
-    res.json({
-      success: true,
-      message: 'Login successful',
-      username: user.username
+      // Log login activity
+      logManualActivity(req, ActivityTypes.USER_LOGIN, 'user', user.id, { 
+        username: user.username, 
+        rememberMe: !!rememberMe 
+      });
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        username: user.username
+      });
     });
   })
 );

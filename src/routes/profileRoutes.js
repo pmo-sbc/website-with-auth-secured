@@ -97,9 +97,21 @@ router.post(
     // Log password change activity
     logManualActivity(req, ActivityTypes.PASSWORD_CHANGE, 'user', userId);
 
-    res.json({
-      success: true,
-      message: 'Password changed successfully'
+    // Destroy current session and require re-login for security
+    req.session.destroy((err) => {
+      if (err) {
+        logger.error('Error destroying session after password change', err);
+        return res.status(500).json({
+          error: 'Password changed but session cleanup failed',
+          message: 'Please log out and log back in'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Password changed successfully. Please log in again.',
+        redirect: '/login?message=password_changed'
+      });
     });
   })
 );

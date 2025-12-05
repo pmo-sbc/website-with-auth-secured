@@ -17,10 +17,11 @@ const config = {
     name: 'sessionId',
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset cookie maxAge on every response (inactivity timeout)
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 30 * 60 * 1000, // 30 minutes inactivity timeout
       sameSite: 'strict'
     }
   },
@@ -53,9 +54,17 @@ const config = {
           defaultSrc: ["'self'"],
           scriptSrc: [
             "'self'",
-            "'unsafe-inline'",
+            (req, res) => {
+              // Add nonce for inline scripts if available
+              // Return undefined (not null) if nonce is not available
+              const nonce = res.locals?.cspNonce;
+              return nonce ? `'nonce-${nonce}'` : undefined;
+            },
             "https://js.stripe.com",
-            "https://www.paypal.com"
+            "https://www.paypal.com",
+            "https://cdnjs.cloudflare.com", // For DOMPurify CDN
+            "'unsafe-inline'" // Temporarily needed until all inline scripts have nonces injected
+            // The injectCspNonce middleware will add nonces, but keeping this as fallback
           ],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", "data:", "https:"],
@@ -77,6 +86,34 @@ const config = {
         maxAge: 31536000,
         includeSubDomains: true,
         preload: true
+      },
+      // Permissions Policy (replaces Feature-Policy)
+      permissionsPolicy: {
+        geolocation: [], // Disable geolocation
+        microphone: [], // Disable microphone
+        camera: [], // Disable camera
+        payment: ["'self'"], // Allow payment API only from same origin
+        usb: [], // Disable USB
+        magnetometer: [], // Disable magnetometer
+        gyroscope: [], // Disable gyroscope
+        accelerometer: [], // Disable accelerometer
+        ambientLightSensor: [], // Disable ambient light sensor
+        autoplay: ["'self'"], // Allow autoplay only from same origin
+        encryptedMedia: ["'self'"], // Allow encrypted media only from same origin
+        fullscreen: ["'self'"], // Allow fullscreen only from same origin
+        pictureInPicture: ["'self'"] // Allow picture-in-picture only from same origin
+      },
+      // Expect-CT header (Certificate Transparency)
+      expectCt: {
+        maxAge: 86400, // 24 hours
+        enforce: true, // Enforce CT compliance
+        reportUri: undefined // Optional: Add reporting endpoint if needed
+      },
+      // Cross-Origin Embedder Policy
+      crossOriginEmbedderPolicy: true,
+      // Cross-Origin Opener Policy
+      crossOriginOpenerPolicy: {
+        policy: "same-origin" // Restrict to same-origin only
       }
     }
   },

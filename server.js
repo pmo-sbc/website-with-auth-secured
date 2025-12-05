@@ -9,6 +9,7 @@ const SqliteStore = require('better-sqlite3-session-store')(session);
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const crypto = require('crypto');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./src/config/swagger');
 
@@ -78,7 +79,15 @@ try {
 // 1. Request logging (first middleware to capture all requests)
 app.use(requestLogger);
 
-// 2. Security headers
+// 2. Generate CSP nonce for each request (MUST be before Helmet)
+// This nonce is used in CSP headers for inline scripts
+app.use((req, res, next) => {
+  // Generate a random nonce for this request
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  next();
+});
+
+// 3. Security headers (Helmet uses the nonce from res.locals)
 app.use(configureHelmet());
 app.use(securityHeaders);
 
@@ -90,10 +99,15 @@ app.use(sanitizeBody);
 // 4. Cookie parser (required for CSRF)
 app.use(cookieParser());
 
-// 5. Static files
+// 5. CSP nonce injection middleware (before static files)
+// This injects nonces into HTML files for inline scripts
+const injectCspNonce = require('./src/middleware/injectCspNonce');
+app.use(injectCspNonce);
+
+// 6. Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 6. Session configuration with SQLite store
+// 7. Session configuration with SQLite store
 const sessionStore = new SqliteStore({
   client: getDatabase(),
   expired: {
@@ -107,10 +121,58 @@ app.use(session({
   store: sessionStore
 }));
 
-// 7. Attach user info to request
+// 8. Attach user info to request
 app.use(attachUser);
 
-// 8. Rate limiting for API routes
+// 9. Validate device fingerprint for authenticated sessions
+// This middleware runs after session is established but before routes
+app.use((req, res, next) => {
+  // Only validate if user is authenticated
+  if (req.session && req.session.userId && req.session.deviceFingerprint) {
+    const { validateFingerprint, generateFingerprint } = require('./src/utils/deviceFingerprint');
+    
+    const isValid = validateFingerprint(req, req.session);
+    
+    if (!isValid) {
+      logger.warn('Device fingerprint mismatch - invalidating session', {
+        userId: req.session.userId,
+        url: req.originalUrl,
+        ip: req.ip
+      });
+      
+      // Destroy session for security
+      req.session.destroy((err) => {
+        if (err) {
+          logger.error('Error destroying session on fingerprint mismatch', err);
+        }
+      });
+      
+      // For API requests, return JSON error
+      if (req.path.startsWith('/api/')) {
+        return res.status(401).json({
+          error: 'Session invalid',
+          message: 'Your session has been invalidated for security reasons. Please log in again.',
+          redirect: '/login?error=session_invalid'
+        });
+      }
+      
+      // For page requests, redirect to login
+      return res.redirect('/login?error=session_invalid');
+    }
+    
+    // Update last activity timestamp
+    req.session.lastActivity = Date.now();
+  } else if (req.session && req.session.userId && !req.session.deviceFingerprint) {
+    // Generate fingerprint for existing sessions (migration support)
+    const { generateFingerprint } = require('./src/utils/deviceFingerprint');
+    req.session.deviceFingerprint = generateFingerprint(req);
+    req.session.lastActivity = Date.now();
+  }
+  
+  next();
+});
+
+// 10. Rate limiting for API routes
 app.use('/api/', configureApiRateLimit());
 
 // ===== ROUTES =====

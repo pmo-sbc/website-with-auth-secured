@@ -106,13 +106,29 @@ function configureEmailRateLimit() {
 
 /**
  * Security headers middleware
+ * Additional custom security headers not covered by Helmet
  */
 function securityHeaders(req, res, next) {
-  // Additional custom security headers
+  // X-Content-Type-Options: Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // X-Frame-Options: Prevent clickjacking (also set by Helmet, but explicit here)
   res.setHeader('X-Frame-Options', 'DENY');
+  
+  // X-XSS-Protection: Enable XSS filter in older browsers
   res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Referrer-Policy: Control referrer information
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // X-Permitted-Cross-Domain-Policies: Restrict Adobe Flash/PDF cross-domain access
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  
+  // Clear-Site-Data: Allow clearing of site data (optional, for logout)
+  // Only set when needed (e.g., on logout endpoint)
+  if (req.path === '/api/logout' || req.path === '/logout') {
+    res.setHeader('Clear-Site-Data', '"cache", "cookies", "storage"');
+  }
 
   next();
 }

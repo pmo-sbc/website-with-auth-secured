@@ -13,10 +13,24 @@ let db;
  */
 function initializeDatabase() {
   try {
-    db = new Database(config.database.filename, config.database.options);
+    // Initialize database with timeout configuration
+    db = new Database(config.database.filename, {
+      ...config.database.options,
+      timeout: 5000 // 5 second timeout for queries (prevents resource exhaustion)
+    });
 
     // Enable foreign keys
     db.pragma('foreign_keys = ON');
+
+    // Enable WAL mode for better concurrency and performance
+    // WAL (Write-Ahead Logging) allows multiple readers and one writer simultaneously
+    try {
+      db.pragma('journal_mode = WAL');
+      logger.info('Database WAL mode enabled');
+    } catch (error) {
+      // WAL mode might not be available in all SQLite versions
+      logger.warn('Could not enable WAL mode', error);
+    }
 
     // Create tables
     createTables();

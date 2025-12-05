@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/csrf-helper.js"></script>
     <script src="js/session-manager.js"></script>
+    <!-- DOMPurify for XSS prevention -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script src="js/sanitize.js"></script>
     <style>
         /* Override navbar to use dark background */
         .navbar {
@@ -784,13 +787,25 @@
 
             return `
                 <div class="prompts-list">
-                    ${prompts.map(prompt => `
+                    ${prompts.map(prompt => {
+                        // Sanitize user-generated content to prevent XSS
+                        const sanitizedPromptText = typeof sanitizeHTML !== 'undefined' 
+                            ? sanitizeHTML(prompt.prompt_text) 
+                            : prompt.prompt_text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const sanitizedTemplateName = typeof sanitizeText !== 'undefined'
+                            ? sanitizeText(prompt.template_name)
+                            : prompt.template_name.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const sanitizedCategory = typeof sanitizeText !== 'undefined'
+                            ? sanitizeText(prompt.category)
+                            : prompt.category.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        
+                        return `
                         <div class="prompt-item" data-prompt-id="${prompt.id}">
                             <div class="prompt-item-header">
                                 <div>
-                                    <div class="prompt-item-title">${prompt.template_name}</div>
+                                    <div class="prompt-item-title">${sanitizedTemplateName}</div>
                                     <div class="prompt-item-meta">
-                                        <span class="category-badge">${prompt.category}</span>
+                                        <span class="category-badge">${sanitizedCategory}</span>
                                         <span style="margin-left: 0.5rem;">${new Date(prompt.created_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>
@@ -803,9 +818,10 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="prompt-item-text">${prompt.prompt_text}</div>
+                            <div class="prompt-item-text">${sanitizedPromptText}</div>
                         </div>
-                    `).join('')}
+                    `;
+                    }).join('')}
                 </div>
             `;
         }
@@ -827,13 +843,25 @@
 
             container.innerHTML = `
                 <div class="prompts-list">
-                    ${unassigned.map(prompt => `
+                    ${unassigned.map(prompt => {
+                        // Sanitize user-generated content to prevent XSS
+                        const sanitizedPromptText = typeof sanitizeHTML !== 'undefined' 
+                            ? sanitizeHTML(prompt.prompt_text) 
+                            : prompt.prompt_text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const sanitizedTemplateName = typeof sanitizeText !== 'undefined'
+                            ? sanitizeText(prompt.template_name)
+                            : prompt.template_name.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const sanitizedCategory = typeof sanitizeText !== 'undefined'
+                            ? sanitizeText(prompt.category)
+                            : prompt.category.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        
+                        return `
                         <div class="prompt-item" data-prompt-id="${prompt.id}">
                             <div class="prompt-item-header">
                                 <div>
-                                    <div class="prompt-item-title">${prompt.template_name}</div>
+                                    <div class="prompt-item-title">${sanitizedTemplateName}</div>
                                     <div class="prompt-item-meta">
-                                        <span class="category-badge">${prompt.category}</span>
+                                        <span class="category-badge">${sanitizedCategory}</span>
                                         <span style="margin-left: 0.5rem;">${new Date(prompt.created_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>
@@ -846,7 +874,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="prompt-item-text">${prompt.prompt_text}</div>
+                            <div class="prompt-item-text">${sanitizedPromptText}</div>
                             <div class="assign-project-section">
                                 <label style="color: var(--text-secondary); font-size: 0.85rem;">Assign to project:</label>
                                 <select class="assign-dropdown" data-prompt-id="${prompt.id}">

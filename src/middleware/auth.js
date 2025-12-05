@@ -4,13 +4,78 @@
 
 const logger = require('../utils/logger');
 const userRepository = require('../db/userRepository');
+const { validateFingerprint, generateFingerprint } = require('../utils/deviceFingerprint');
+
+/**
+ * Middleware to validate device fingerprint
+ * Checks if the current request matches the device that created the session
+ */
+function validateDeviceFingerprint(req, res, next) {
+  if (req.session && req.session.userId && req.session.deviceFingerprint) {
+    const isValid = validateFingerprint(req, req.session);
+    
+    if (!isValid) {
+      logger.warn('Device fingerprint mismatch - possible session hijacking', {
+        userId: req.session.userId,
+        url: req.originalUrl,
+        ip: req.ip
+      });
+      
+      // Destroy the session for security
+      req.session.destroy((err) => {
+        if (err) {
+          logger.error('Error destroying session on fingerprint mismatch', err);
+        }
+      });
+      
+      return res.status(401).json({
+        error: 'Session invalid',
+        message: 'Your session has been invalidated for security reasons. Please log in again.',
+        redirect: '/login?error=session_invalid'
+      });
+    }
+    
+    // Update last activity timestamp
+    req.session.lastActivity = Date.now();
+  }
+  
+  next();
+}
 
 /**
  * Middleware to require authentication
- * Checks if user is logged in via session
+ * Checks if user is logged in via session and validates device fingerprint
  */
 function requireAuth(req, res, next) {
   if (req.session && req.session.userId) {
+    // Validate device fingerprint for authenticated users
+    if (req.session.deviceFingerprint) {
+      const isValid = validateFingerprint(req, req.session);
+      
+      if (!isValid) {
+        logger.warn('Device fingerprint mismatch', {
+          userId: req.session.userId,
+          url: req.originalUrl
+        });
+        
+        req.session.destroy((err) => {
+          if (err) logger.error('Error destroying session', err);
+        });
+        
+        return res.status(401).json({
+          error: 'Session invalid',
+          message: 'Your session has been invalidated. Please log in again.',
+          redirect: '/login?error=session_invalid'
+        });
+      }
+    } else {
+      // If no fingerprint exists, generate one (for existing sessions)
+      req.session.deviceFingerprint = generateFingerprint(req);
+    }
+    
+    // Update last activity
+    req.session.lastActivity = Date.now();
+    
     logger.debug(`Authenticated request from user ${req.session.userId}`);
     return next();
   }
@@ -122,5 +187,6 @@ module.exports = {
   redirectIfAuthenticated,
   attachUser,
   authenticateToken,
-  requireAdmin
+  requireAdmin,
+  validateDeviceFingerprint
 };
