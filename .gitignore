@@ -9,6 +9,8 @@ package-lock.json
 prompts.db
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 
 # Logs
 logs/
